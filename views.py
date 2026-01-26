@@ -34,13 +34,15 @@ def proxy_view(request, service, path=''):
         content_type = resp.headers.get('content-type', '')
         
         # Rewrite HTML
+        # Rewrite HTML
         if 'text/html' in content_type:
             content = resp.content.decode('utf-8', errors='ignore')
             # Rewrite HTML attributes
             content = re.sub(r'(href|src|action)="(/[^"]*)"', rf'\1="/{service}\2"', content)
             content = re.sub(r"(href|src|action)='(/[^']*)'", rf"\1='/{service}\2'", content)
-            # Rewrite inline JavaScript - fetch, ajax, url patterns
-            content = re.sub(r'(fetch|ajax|url:\s*|xhr\.open\([^,]+,\s*)(["\'])(/[a-zA-Z][^"\']*)', rf'\1\2/{service}\3', content)
+            # Rewrite JavaScript strings - any quote followed by /word
+            # This will catch: fetch('/matches/...'), url: '/api/...', etc.
+            content = re.sub(r'''(['"`])(\/[a-zA-Z0-9_\-/]+\/?)''', rf'\1/{service}\2', content)
             response = HttpResponse(content, status=resp.status_code)
         elif 'javascript' in content_type:
             content = resp.content.decode('utf-8', errors='ignore')
