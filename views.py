@@ -10,7 +10,7 @@ def proxy_view(request, service, path=''):
     print(f"Proxying to: {url}")
     
     try:
-        # Prepare cookies - rewrite domain
+        # Prepare cookies
         cookies = {}
         for key, value in request.COOKIES.items():
             cookies[key] = value
@@ -20,7 +20,7 @@ def proxy_view(request, service, path=''):
             url=url,
             headers={
                 **{k: v for k, v in request.headers.items() 
-                   if k.lower() not in ['connection', 'cookie']},
+                   if k.lower() not in ['connection', 'cookie', 'host']},
                 'Host': f'{service}.up.railway.app',
                 'X-Forwarded-Host': request.get_host(),
                 'X-Forwarded-Proto': 'https' if request.is_secure() else 'http',
@@ -43,19 +43,24 @@ def proxy_view(request, service, path=''):
         else:
             response = HttpResponse(resp.content, status=resp.status_code)
         
-        # Copy headers and rewrite Set-Cookie
+        # Copy headers
         for key, value in resp.headers.items():
-            if key.lower() not in ['connection', 'transfer-encoding', 'content-encoding', 'content-length']:
+            if key.lower() not in ['connection', 'transfer-encoding', 'content-encoding', 'content-length', 'set-cookie']:
                 if key.lower() == 'location':
                     if value.startswith('/'):
                         value = f'/{service}{value}'
                     elif value.startswith(f'https://{service}.up.railway.app/'):
                         value = value.replace(f'https://{service}.up.railway.app/', f'/{service}/')
-                elif key.lower() == 'set-cookie':
-                    # Rewrite cookie domain
-                    value = value.replace(f'Domain={service}.up.railway.app', f'Domain={request.get_host()}')
-                    value = value.replace(f'domain={service}.up.railway.app', f'domain={request.get_host()}')
                 response[key] = value
+        
+        # Handle Set-Cookie separately to properly rewrite each cookie
+        if 'Set-Cookie' in resp.headers:
+            for cookie in resp.raw.headers.getlist('Set-Cookie'):
+                # Remove domain restrictions so cookie works on proxy domain
+                cookie = re.sub(r';\s*Domain=[^;]+', '', cookie, flags=re.IGNORECASE)
+                # Change path to include service prefix
+                cookie = re.sub(r'(Path=)(/[^;]*)', rf'\1/{service}\2', cookie, flags=re.IGNORECASE)
+                response['Set-Cookie'] = cookie
         
         return response
         
