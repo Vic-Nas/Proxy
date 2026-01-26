@@ -1,8 +1,9 @@
 import os
+from config import SECRET_KEY, DEBUG, ALLOWED_HOSTS
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'change-me-in-production')
-DEBUG = False
-ALLOWED_HOSTS = ['*']
+SECRET_KEY = os.environ.get('SECRET_KEY', SECRET_KEY)
+DEBUG = os.environ.get('DEBUG', str(DEBUG)).lower() == 'true'
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', ','.join(ALLOWED_HOSTS)).split(',')
 
 INSTALLED_APPS = []
 
@@ -13,7 +14,6 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'urls'
 DATABASES = {}
 
-# Add logging
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
