@@ -2,6 +2,7 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import requests
 import re
+import json
 from config import TARGET_DOMAIN_PATTERN, ALLOWED_SERVICES, BLOCKED_SERVICES
 
 
@@ -58,8 +59,6 @@ def proxy_view(request, service, path=''):
         # Rewrite Referer header to point to backend
         if 'Referer' in headers:
             referer = headers['Referer']
-            # Replace proxy domain with backend domain and remove service prefix
-            # https://vicnas.me/dash0/path -> https://dash0.up.railway.app/path
             referer = re.sub(
                 rf'https?://[^/]+/{service}/',
                 f'https://{target_domain}/',
@@ -106,6 +105,16 @@ def proxy_view(request, service, path=''):
             content = resp.content.decode('utf-8', errors='ignore')
             content = rewrite_css(content, service)
             response = HttpResponse(content, status=resp.status_code)
+        elif 'application/json' in content_type:
+            # Rewrite JSON responses containing URLs
+            try:
+                content = resp.content.decode('utf-8', errors='ignore')
+                data = json.loads(content)
+                data = rewrite_json_urls(data, service)
+                response = JsonResponse(data, status=resp.status_code, safe=False)
+            except (json.JSONDecodeError, Exception):
+                # If JSON parsing fails, pass through as-is
+                response = HttpResponse(resp.content, status=resp.status_code, content_type=content_type)
         else:
             response = HttpResponse(resp.content, status=resp.status_code)
         
@@ -133,6 +142,21 @@ def proxy_view(request, service, path=''):
     except Exception as e:
         print(f"[ERROR] Proxy error: {e}")
         return JsonResponse({'error': 'Proxy error', 'details': str(e)}, status=502)
+
+
+def rewrite_json_urls(data, service):
+    """Recursively rewrite URLs in JSON data."""
+    if isinstance(data, dict):
+        return {key: rewrite_json_urls(value, service) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [rewrite_json_urls(item, service) for item in data]
+    elif isinstance(data, str):
+        # Rewrite if it looks like a path (starts with /)
+        if data.startswith('/') and not data.startswith('//'):
+            return f'/{service}{data}'
+        return data
+    else:
+        return data
 
 
 def rewrite_html(content, service):
