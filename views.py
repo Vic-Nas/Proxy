@@ -49,19 +49,19 @@ def proxy_view(request, service, path=''):
     print(f"[PROXY] {request.method} /{service}/{path} → {url}")
     
     try:
-        # Prepare request headers
-        headers = {
-            k: v for k, v in request.headers.items() 
-            if k.lower() not in ['connection', 'host']
-        }
-        headers.update({
-            'Host': target_domain,
-            'X-Forwarded-Host': request.get_host(),
-            'X-Forwarded-Proto': 'https' if request.is_secure() else 'http',
-            'X-Real-IP': request.META.get('REMOTE_ADDR', ''),
-        })
+        # Prepare request headers - include ALL headers except connection and host
+        headers = {}
+        for k, v in request.headers.items():
+            if k.lower() not in ['connection', 'host']:
+                headers[k] = v
         
-        # Forward ALL cookies including csrftoken
+        # Override/add specific headers
+        headers['Host'] = target_domain
+        headers['X-Forwarded-Host'] = request.get_host()
+        headers['X-Forwarded-Proto'] = 'https' if request.is_secure() else 'http'
+        headers['X-Real-IP'] = request.META.get('REMOTE_ADDR', '')
+        
+        # Forward ALL cookies
         cookies = {key: value for key, value in request.COOKIES.items()}
         
         # Make the proxied request
@@ -100,17 +100,10 @@ def proxy_view(request, service, path=''):
                     value = rewrite_location(value, service, target_domain)
                 response[key] = value
         
-        # Handle Set-Cookie headers - CRITICAL for CSRF
+        # Handle Set-Cookie headers
         if 'Set-Cookie' in resp.headers:
             for cookie in resp.raw.headers.getlist('Set-Cookie'):
-                # Rewrite cookie path but keep everything else intact
-                cookie = re.sub(r';\s*Domain=[^;]+', '', cookie, flags=re.IGNORECASE)
-                if not re.search(r'Path=', cookie, flags=re.IGNORECASE):
-                    # Add path if not present
-                    cookie += f'; Path=/{service}/'
-                else:
-                    # Rewrite existing path
-                    cookie = re.sub(r'(Path=)(/[^;]*)', rf'\1/{service}\2', cookie, flags=re.IGNORECASE)
+                cookie = rewrite_cookie(cookie, service)
                 response['Set-Cookie'] = cookie
         
         return response
@@ -175,6 +168,9 @@ def rewrite_cookie(cookie, service):
     """Rewrite cookie to work with the proxy."""
     # Remove Domain restriction
     cookie = re.sub(r';\s*Domain=[^;]+', '', cookie, flags=re.IGNORECASE)
-    # Update Path
-    cookie = re.sub(r'(Path=)(/[^;]*)', rf'\1/{service}\2', cookie, flags=re.IGNORECASE)
+    # Update Path to include service prefix
+    if not re.search(r'Path=', cookie, flags=re.IGNORECASE):
+        cookie += f'; Path=/{service}/'
+    else:
+        cookie = re.sub(r'(Path=)(/[^;]*)', rf'\1/{service}\2', cookie, flags=re.IGNORECASE)
     return cookie
