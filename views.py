@@ -82,9 +82,13 @@ def proxy_view(request, service, path=''):
             content = resp.content.decode('utf-8', errors='ignore')
             content = rewrite_html(content, service)
             response = HttpResponse(content, status=resp.status_code)
-        elif 'javascript' in content_type or 'application/json' in content_type:
+        elif 'javascript' in content_type:
             content = resp.content.decode('utf-8', errors='ignore')
             content = rewrite_javascript(content, service)
+            response = HttpResponse(content, status=resp.status_code)
+        elif 'text/css' in content_type:
+            content = resp.content.decode('utf-8', errors='ignore')
+            content = rewrite_css(content, service)
             response = HttpResponse(content, status=resp.status_code)
         else:
             response = HttpResponse(resp.content, status=resp.status_code)
@@ -117,24 +121,37 @@ def proxy_view(request, service, path=''):
 
 def rewrite_html(content, service):
     """Rewrite HTML content to fix URLs."""
-    # Rewrite href, src, action attributes
-    content = re.sub(r'(href|src|action)="(/[^"]*)"', rf'\1="/{service}\2"', content)
-    content = re.sub(r"(href|src|action)='(/[^']*)'", rf"\1='/{service}\2'", content)
+    # Rewrite href, src, action attributes with double quotes
+    content = re.sub(r'(href|src|action)="(/[^"]+)"', rf'\1="/{service}\2"', content)
+    # Rewrite href, src, action attributes with single quotes
+    content = re.sub(r"(href|src|action)='(/[^']+)'", rf"\1='/{service}\2'", content)
     
-    # Rewrite fetch() calls
-    content = re.sub(r'fetch\s*\(\s*["\'](/[^"\']+)', rf'fetch("/{service}\1', content)
+    # Rewrite fetch() calls in inline scripts - FIXED: proper quote matching
+    content = re.sub(r'fetch\s*\(\s*(["\'])(/[^"\']+)\1', rf'fetch(\1/{service}\2\1', content)
     
     return content
 
 
 def rewrite_javascript(content, service):
     """Rewrite JavaScript content to fix URLs."""
-    # Rewrite common JS patterns
-    content = re.sub(
-        r'(fetch|ajax|url:\s*|xhr\.open\([^,]+,\s*)(["\'])(/[a-zA-Z][^"\']*)',
-        rf'\1\2/{service}\3',
-        content
-    )
+    # Rewrite fetch() with proper quote matching - THE FIX
+    content = re.sub(r'fetch\s*\(\s*(["\'])(/[^"\']+)\1', rf'fetch(\1/{service}\2\1', content)
+    
+    # Rewrite xhr.open() with proper quote matching
+    content = re.sub(r'(xhr\.open\s*\([^,]+,\s*)(["\'])(/[^"\']+)\2', rf'\1\2/{service}\3\2', content)
+    
+    # Rewrite url: property with proper quote matching
+    content = re.sub(r'(url:\s*)(["\'])(/[^"\']+)\2', rf'\1\2/{service}\3\2', content)
+    
+    return content
+
+
+def rewrite_css(content, service):
+    """Rewrite CSS content to fix URLs in url() declarations."""
+    # Rewrite url() with quotes
+    content = re.sub(r'url\s*\(\s*(["\'])(/[^"\']+)\1\s*\)', rf'url(\1/{service}\2\1)', content)
+    # Rewrite url() without quotes
+    content = re.sub(r'url\s*\(\s*(/[^\)]+)\s*\)', rf'url(/{service}\1)', content)
     return content
 
 
