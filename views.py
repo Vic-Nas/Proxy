@@ -159,6 +159,10 @@ def rewrite_javascript(content, service):
     # Rewrite url: property with proper quote matching
     content = re.sub(r'(url:\s*)(["\'])(/[^"\']+)\2', rf'\1\2/{service}\3\2', content)
     
+    # Rewrite window.location assignments
+    content = re.sub(r'(window\.location\s*=\s*)(["\'])(/[^"\']+)\2', rf'\1\2/{service}\3\2', content)
+    content = re.sub(r'(window\.location\.href\s*=\s*)(["\'])(/[^"\']+)\2', rf'\1\2/{service}\3\2', content)
+    
     return content
 
 
@@ -173,10 +177,15 @@ def rewrite_css(content, service):
 
 def rewrite_location(location, service, target_domain):
     """Rewrite Location header for redirects."""
-    if location.startswith('/'):
+    # Handle relative paths (most common case)
+    if location.startswith('/') and not location.startswith('//'):
         return f'/{service}{location}'
+    # Handle absolute URLs pointing to the target domain
     elif location.startswith(f'https://{target_domain}/'):
         return location.replace(f'https://{target_domain}/', f'/{service}/')
+    elif location.startswith(f'http://{target_domain}/'):
+        return location.replace(f'http://{target_domain}/', f'/{service}/')
+    # Return unchanged for external URLs or protocol-relative URLs
     return location
 
 
