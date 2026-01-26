@@ -49,10 +49,10 @@ def proxy_view(request, service, path=''):
     print(f"[PROXY] {request.method} /{service}/{path} → {url}")
     
     try:
-        # Prepare request
+        # Prepare request headers
         headers = {
             k: v for k, v in request.headers.items() 
-            if k.lower() not in ['connection', 'cookie', 'host']
+            if k.lower() not in ['connection', 'host']
         }
         headers.update({
             'Host': target_domain,
@@ -61,7 +61,7 @@ def proxy_view(request, service, path=''):
             'X-Real-IP': request.META.get('REMOTE_ADDR', ''),
         })
         
-        # Forward cookies
+        # Forward ALL cookies including csrftoken
         cookies = {key: value for key, value in request.COOKIES.items()}
         
         # Make the proxied request
@@ -100,10 +100,17 @@ def proxy_view(request, service, path=''):
                     value = rewrite_location(value, service, target_domain)
                 response[key] = value
         
-        # Handle cookies
+        # Handle Set-Cookie headers - CRITICAL for CSRF
         if 'Set-Cookie' in resp.headers:
             for cookie in resp.raw.headers.getlist('Set-Cookie'):
-                cookie = rewrite_cookie(cookie, service)
+                # Rewrite cookie path but keep everything else intact
+                cookie = re.sub(r';\s*Domain=[^;]+', '', cookie, flags=re.IGNORECASE)
+                if not re.search(r'Path=', cookie, flags=re.IGNORECASE):
+                    # Add path if not present
+                    cookie += f'; Path=/{service}/'
+                else:
+                    # Rewrite existing path
+                    cookie = re.sub(r'(Path=)(/[^;]*)', rf'\1/{service}\2', cookie, flags=re.IGNORECASE)
                 response['Set-Cookie'] = cookie
         
         return response
@@ -126,7 +133,7 @@ def rewrite_html(content, service):
     # Rewrite href, src, action attributes with single quotes
     content = re.sub(r"(href|src|action)='(/[^']+)'", rf"\1='/{service}\2'", content)
     
-    # Rewrite fetch() calls in inline scripts - FIXED: proper quote matching
+    # Rewrite fetch() calls in inline scripts - proper quote matching
     content = re.sub(r'fetch\s*\(\s*(["\'])(/[^"\']+)\1', rf'fetch(\1/{service}\2\1', content)
     
     return content
@@ -134,7 +141,7 @@ def rewrite_html(content, service):
 
 def rewrite_javascript(content, service):
     """Rewrite JavaScript content to fix URLs."""
-    # Rewrite fetch() with proper quote matching - THE FIX
+    # Rewrite fetch() with proper quote matching
     content = re.sub(r'fetch\s*\(\s*(["\'])(/[^"\']+)\1', rf'fetch(\1/{service}\2\1', content)
     
     # Rewrite xhr.open() with proper quote matching
