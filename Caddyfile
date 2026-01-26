@@ -1,4 +1,9 @@
 :{$PORT}
 
-reverse_proxy /app/* https://app.up.railway.app
-reverse_proxy /dash/* https://dash.up.railway.app
+handle_path /{app}/* {
+    reverse_proxy https://{app}.up.railway.app
+}
+
+handle {
+    respond "Proxy is running" 200
+}
