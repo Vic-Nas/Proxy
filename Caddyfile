@@ -1,10 +1,7 @@
 :{$PORT}
 
-@app path_regexp ^/([^/]+)(/.*)?$
-
-handle @app {
-    uri strip_prefix /{re.app.1}
-    reverse_proxy {re.app.1}.up.railway.app:443 {
+handle_path /dash0/* {
+    reverse_proxy dash0.up.railway.app:443 {
         transport http {
             tls
         }
