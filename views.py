@@ -3,6 +3,7 @@ from django.views.decorators.csrf import csrf_exempt
 import requests
 import re
 import gzip
+import zlib
 import io
 from config import SERVICES, TARGET_DOMAIN_PATTERN, BLOCKED_SERVICES
 
@@ -166,8 +167,23 @@ def proxy_view(request, service, path=''):
             timeout=30
         )
         
-        # Handle content - requests lib auto-decompresses, so just use it directly
+        # Get the raw content and check if we need to decompress
         content = resp.content
+        
+        # If response says it's compressed but requests didn't decompress it, do it manually
+        encoding = resp.headers.get('content-encoding', '').lower()
+        if encoding == 'gzip' and content[:2] == b'\x1f\x8b':  # gzip magic number
+            try:
+                content = gzip.decompress(content)
+            except Exception as e:
+                print(f"[WARNING] Failed to decompress gzip: {e}")
+        elif encoding == 'deflate' and content[:2] == b'x\x9c':  # deflate magic number
+            try:
+                import zlib
+                content = zlib.decompress(content)
+            except Exception as e:
+                print(f"[WARNING] Failed to decompress deflate: {e}")
+        
         content_type = resp.headers.get('content-type', '')
         
         if 'text/html' in content_type:
