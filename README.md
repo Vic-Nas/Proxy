@@ -32,7 +32,6 @@ Examples:
 ## Limitations
 
 - **No WebSocket support** - needs Nginx/Caddy
-- **Your backend needs fixing** - the `/matches/multiplayer/` error is from your backend's JavaScript doing `window.location = '/matches/...'` without the service prefix
 
 ## Fix Your Backend
 
