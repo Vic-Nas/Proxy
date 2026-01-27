@@ -138,11 +138,8 @@ def proxy_view(request, service, path=''):
     try:
         headers = {}
         for k, v in request.headers.items():
-            if k.lower() not in ['connection', 'host', 'accept-encoding']:
+            if k.lower() not in ['connection', 'host']:
                 headers[k] = v
-        
-        # Request uncompressed content from backend
-        headers['Accept-Encoding'] = 'identity'
         
         if 'Referer' in headers:
             headers['Referer'] = re.sub(
@@ -170,7 +167,7 @@ def proxy_view(request, service, path=''):
             timeout=30
         )
         
-        # Get the raw content (should be uncompressed since we requested identity encoding)
+        # Get the raw content - requests lib handles decompression automatically
         content = resp.content
         
         content_type = resp.headers.get('content-type', '')
@@ -189,10 +186,12 @@ def proxy_view(request, service, path=''):
         for key, value in resp.headers.items():
             if key.lower() not in ['connection', 'transfer-encoding', 'content-encoding', 'content-length', 'set-cookie']:
                 if key.lower() == 'location':
-                    if value.startswith('/') and not value.startswith(f'/{service}/'):
+                    # If it's an absolute URL to the target domain, convert to service path
+                    if value.startswith(f'https://{target_domain}'):
+                        value = f'/{service}{value[len(f"https://{target_domain}"):] or "/"}'
+                    # If it's a relative path, add service prefix
+                    elif value.startswith('/') and not value.startswith(f'/{service}/'):
                         value = f'/{service}{value}'
-                    elif value.startswith(f'https://{target_domain}/'):
-                        value = value.replace(f'https://{target_domain}/', f'/{service}/')
                 response[key] = value
         
         if 'Set-Cookie' in resp.headers:
