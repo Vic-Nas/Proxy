@@ -3,4 +3,4 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
-CMD ["sh", "-c", "gunicorn wsgi:application --bind 0.0.0.0:$PORT --workers 2 --access-logfile - --error-logfile -"]
+CMD ["sh", "-c", "daphne -b 0.0.0.0 -p $PORT routing:application"]

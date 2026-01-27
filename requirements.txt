@@ -1,3 +1,5 @@
 django
 gunicorn
 requests
+channels[daphne]
+websockets

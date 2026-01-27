@@ -20,6 +20,7 @@ def home(request):
         <p>This service proxies requests to backend services.</p>
         <p><strong>Usage:</strong> <code>/{service}/{path}</code></p>
         <p><strong>Example:</strong> <code>/api/users</code> → <code>https://api.up.railway.app/users</code></p>
+        <p><strong>WebSocket Support:</strong> Enabled via Django Channels</p>
     </body>
     </html>
     """
@@ -171,7 +172,7 @@ def rewrite_json_urls(data, service):
 def rewrite_html(content, service):
     """Rewrite HTML content to fix URLs and enforce HTTPS."""
     # Upgrade HTTP links to HTTPS
-    content = re.sub(r'http://', 'https://', content)
+    content = re.sub(r'\bhttp://', 'https://', content)
     
     # Add CSP meta tag if not present
     if '<head>' in content and 'Content-Security-Policy' not in content:
@@ -199,15 +200,18 @@ def rewrite_html(content, service):
         content
     )
     
-    # Rewrite WebSocket connections (upgrade to wss://)
+    # Rewrite WebSocket connections - comprehensive approach
+    # Pattern 1: new WebSocket('/ws/...')  →  new WebSocket('/{service}/ws/...')
     content = re.sub(
-        r'(new\s+WebSocket\s*\(\s*(["\']))(ws://)',
-        r'\1wss://',
+        r'(new\s+WebSocket\s*\(\s*["\'])((?:wss?://)?(?:[^/]+)?)?(/(?!' + re.escape(service) + r'/)[^"\']*?)(["\'])',
+        rf'\1/{service}\3\4',
         content
     )
+    
+    # Pattern 2: WebSocket variable assignments like: const ws = '/ws/...'
     content = re.sub(
-        r'(new\s+WebSocket\s*\(\s*(["\'])(?:wss?://[^/]+)?)/(?!' + re.escape(service) + r'/)([^"\']+)\2',
-        rf'\1/{service}/\3\2',
+        r'(["\'])(/ws/(?!' + re.escape(service) + r'/)[^"\']+)(["\'])',
+        rf'\1/{service}\2\3',
         content
     )
     
@@ -226,7 +230,7 @@ def rewrite_html(content, service):
 def rewrite_javascript(content, service):
     """Rewrite JavaScript content to fix URLs and enforce HTTPS."""
     # Upgrade HTTP to HTTPS
-    content = re.sub(r'http://', 'https://', content)
+    content = re.sub(r'\bhttp://', 'https://', content)
     
     # Rewrite fetch() (skip if already prefixed)
     content = re.sub(
@@ -261,15 +265,18 @@ def rewrite_javascript(content, service):
         content
     )
     
-    # Rewrite WebSocket connections (upgrade to wss://)
+    # Rewrite WebSocket connections - comprehensive
+    # Pattern 1: new WebSocket('/ws/...')  →  new WebSocket('/{service}/ws/...')
     content = re.sub(
-        r'(new\s+WebSocket\s*\(\s*(["\']))(ws://)',
-        r'\1wss://',
+        r'(new\s+WebSocket\s*\(\s*["\'])((?:wss?://)?(?:[^/]+)?)?(/(?!' + re.escape(service) + r'/)[^"\']*?)(["\'])',
+        rf'\1/{service}\3\4',
         content
     )
+    
+    # Pattern 2: WebSocket variable assignments
     content = re.sub(
-        r'(new\s+WebSocket\s*\(\s*(["\'])(?:wss?://[^/]+)?)/(?!' + re.escape(service) + r'/)([^"\']+)\2',
-        rf'\1/{service}/\3\2',
+        r'(["\'])(/ws/(?!' + re.escape(service) + r'/)[^"\']+)(["\'])',
+        rf'\1/{service}\2\3',
         content
     )
     
@@ -288,7 +295,7 @@ def rewrite_javascript(content, service):
 def rewrite_css(content, service):
     """Rewrite CSS content to fix URLs in url() declarations and enforce HTTPS."""
     # Upgrade HTTP to HTTPS
-    content = re.sub(r'http://', 'https://', content)
+    content = re.sub(r'\bhttp://', 'https://', content)
     
     content = re.sub(r'url\s*\(\s*(["\'])(/[^"\']+)\1\s*\)', rf'url(\1/{service}\2\1)', content)
     content = re.sub(r'url\s*\(\s*(/[^\)]+)\s*\)', rf'url(/{service}\1)', content)

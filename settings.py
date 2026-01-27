@@ -5,7 +5,11 @@ SECRET_KEY = os.environ.get('SECRET_KEY', SECRET_KEY)
 DEBUG = os.environ.get('DEBUG', str(DEBUG)).lower() == 'true'
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', ','.join(ALLOWED_HOSTS)).split(',')
 
-INSTALLED_APPS = []
+INSTALLED_APPS = [
+    'channels',
+]
+
+ASGI_APPLICATION = 'routing.application'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

@@ -1,258 +1,173 @@
-# 🔄 Path-Based Reverse Proxy
+# 🔄 Path-Based Reverse Proxy with WebSocket Support
 
-A lightweight Django-based reverse proxy that routes requests through URL paths instead of subdomains. Perfect for consolidating multiple backend services under a single domain.
+A Django-based reverse proxy that routes requests through URL paths instead of subdomains. **Now with full WebSocket support!**
+
+## ⚡ New in v2.1: WebSocket Support
+
+Your proxy now handles WebSocket connections using Django Channels! This fixes errors like:
+```
+Not Found: /ws/match/174/
+```
 
 ## What It Does
 
-Instead of managing multiple subdomains:
-- ❌ `https://api.yourdomain.com/users`
-- ❌ `https://admin.yourdomain.com/dashboard`
-- ❌ `https://web.yourdomain.com/home`
+Routes all traffic (HTTP + WebSocket) through path-based URLs:
 
-Access everything through paths:
-- ✅ `https://yourdomain.com/api/users`
-- ✅ `https://yourdomain.com/admin/dashboard`
-- ✅ `https://yourdomain.com/web/home`
+**HTTP:**
+- `https://yourdomain.com/api/users` → `https://api.up.railway.app/users`
 
-## How It Works
-
-The proxy intercepts requests at `/{service}/{path}` and forwards them to your configured backend:
-
-```
-GET /api/users/123
-  ↓
-GET https://api.up.railway.app/users/123
-  ↓
-Response returned to client
-```
-
-It automatically rewrites:
-- HTML links, images, and forms
-- JavaScript fetch() calls
-- Redirects and cookies
-- Location headers
-- **HTTP → HTTPS upgrades** (prevents mixed content warnings)
+**WebSockets:**
+- `wss://yourdomain.com/dash0/ws/match/174/` → `wss://dash0.up.railway.app/ws/match/174/`
 
 ## Quick Start
 
-### 1. Configure Your Backend Pattern
-
-Edit `config.py`:
-
-```python
-# Change this to match your deployment platform
-TARGET_DOMAIN_PATTERN = "{service}.up.railway.app"
-
-# Examples for other platforms:
-# TARGET_DOMAIN_PATTERN = "{service}.onrender.com"
-# TARGET_DOMAIN_PATTERN = "{service}.fly.dev"
-# TARGET_DOMAIN_PATTERN = "{service}.yourdomain.com"
-```
-
-### 2. Deploy
-
-**Railway:**
-```bash
-railway up
-```
-
-**Docker:**
-```bash
-docker build -t reverse-proxy .
-docker run -p 8000:8000 -e PORT=8000 reverse-proxy
-```
-
-**Local Development:**
-```bash
-pip install -r requirements.txt
-gunicorn wsgi:application --bind 0.0.0.0:8000
-```
-
-### 3. Use It
-
-Access your services:
-- `http://localhost:8000/api/endpoint` → proxies to `https://api.up.railway.app/endpoint`
-- `http://localhost:8000/web/page` → proxies to `https://web.up.railway.app/page`
-
-## Configuration
-
-### Environment Variables
+### 1. Deploy Updated Version
 
 ```bash
-SECRET_KEY=your-secret-key-here
-DEBUG=false
-ALLOWED_HOSTS=yourdomain.com,*.yourdomain.com
-PORT=8000  # For Railway/Render
+# Replace ALL your files with these updated ones
+git add .
+git commit -m "Add WebSocket support via Django Channels"
+git push
 ```
 
-### Security Options
+### 2. Railway Will Auto-Deploy
 
-In `config.py`:
+Railway will detect the changes and redeploy. The new version uses **Daphne** (ASGI server) instead of Gunicorn to support WebSockets.
 
-```python
-# Only allow specific services
-ALLOWED_SERVICES = ['api', 'web', 'admin']
+### 3. Test WebSocket Connection
 
-# Block certain service names
-BLOCKED_SERVICES = ['www', 'mail', 'ftp', 'ssh']
+Open your browser console on `https://vicnas.me/dash0/` and check if WebSocket connects successfully.
+
+## What Changed
+
+### Before (Gunicorn - HTTP only):
+```dockerfile
+CMD gunicorn wsgi:application
 ```
+❌ Could not handle WebSocket connections
+❌ Got "Not Found" errors for `/ws/` paths
 
-## Security Features
-
-This proxy now includes:
-- ✅ **HTTPS enforcement** - automatically redirects HTTP to HTTPS
-- ✅ **Mixed content prevention** - upgrades all HTTP resources to HTTPS
-- ✅ **Secure cookies** - adds Secure flag to all cookies
-- ✅ **Content Security Policy** - prevents browsers from loading insecure content
-- ✅ **WebSocket upgrade** - automatically converts `ws://` to `wss://`
-
-### Fixing "Not Secure" Warnings
-
-If your browser shows "Not Secure" even with a valid SSL certificate:
-
-1. **Check if it's a mixed content issue:**
-   - Open browser DevTools → Console
-   - Look for "Mixed Content" warnings
-   - This happens when HTTPS pages try to load HTTP resources
-
-2. **This proxy automatically fixes it by:**
-   - Adding `Content-Security-Policy: upgrade-insecure-requests` header
-   - Rewriting all HTTP URLs to HTTPS in HTML/CSS/JS
-   - Setting secure flags on all cookies
-   - Upgrading WebSocket connections to WSS
-
-3. **If issues persist:**
-   - Ensure your backend services serve HTTPS (or allow HTTP→HTTPS upgrade)
-   - Check that backend doesn't force HTTP in responses
-   - Clear browser cache and hard refresh (Ctrl+Shift+R)
-
-## Use Cases
-
-✅ **Perfect For:**
-- Avoiding subdomain management complexity
-- Single SSL certificate for all services
-- Simplified DNS configuration
-- Microservices behind one domain
-- Development/staging environments
-- **Fixing mixed content warnings**
-
-❌ **Not Ideal For:**
-- High-traffic production (consider a proper API gateway)
-- Services requiring WebSocket persistence
-- Very large file uploads/downloads
-
-## How URLs Are Rewritten
-
-**HTML:**
-```html
-<!-- Original from backend -->
-<a href="/login">Login</a>
-<img src="http://example.com/logo.png">
-
-<!-- Rewritten by proxy -->
-<a href="/api/login">Login</a>
-<img src="https://example.com/logo.png">
+### After (Daphne - HTTP + WebSocket):
+```dockerfile
+CMD daphne routing:application
 ```
-
-**JavaScript:**
-```javascript
-// Original
-fetch('/api/data')
-
-// Rewritten
-fetch('/api/api/data')
-```
-
-**Redirects:**
-```
-Location: /dashboard
-  ↓
-Location: /admin/dashboard
-```
-
-**WebSockets:**
-```javascript
-// Original
-new WebSocket('ws://example.com/socket')
-
-// Rewritten
-new WebSocket('wss://example.com/socket')
-```
+✅ Handles both HTTP and WebSocket
+✅ Proxies WebSocket connections to backend
 
 ## Architecture
 
 ```
-Client Request
-    ↓
-Your Domain (this proxy) - HTTPS enforced
-    ↓
-/{service}/{path}
-    ↓
-Forwarded to: https://{service}.platform.com/{path}
-    ↓
-Response rewritten (HTTP → HTTPS)
-    ↓
-Returned to Client
+Client
+  ↓
+HTTPS/WSS: vicnas.me
+  ↓
+Django Channels (Daphne ASGI Server)
+  ├─ HTTP requests → views.py (existing proxy logic)
+  └─ WebSocket → consumers.py (new WebSocket proxy)
+        ↓
+  Backend: dash0.up.railway.app/ws/...
 ```
 
 ## Files Overview
 
-- `config.py` - Main configuration (edit this!)
-- `views.py` - Request handling and URL rewriting + HTTPS enforcement
-- `urls.py` - URL routing
-- `settings.py` - Django settings + security headers
-- `wsgi.py` - WSGI application entry point
-- `Dockerfile` - Container configuration
+**New Files:**
+- `routing.py` - ASGI routing configuration (HTTP + WebSocket)
+- `consumers.py` - WebSocket proxy consumer
 
-## Troubleshooting
+**Updated Files:**
+- `requirements.txt` - Added `channels[daphne]` and `websockets`
+- `settings.py` - Added Channels configuration
+- `Dockerfile` - Changed from Gunicorn to Daphne
+- `views.py` - Improved WebSocket URL rewriting
 
-**Service returns 404:**
-- Check `TARGET_DOMAIN_PATTERN` is correct
-- Verify the backend service is actually running
-- Check service name doesn't contain dots or special chars
+## Troubleshooting Your Specific Errors
 
-**JavaScript/CSS not loading:**
-- Ensure paths in your backend start with `/`
-- Check browser console for 404s
-- May need custom rewriting for specific frameworks
+### Issue: "Not Found: /ws/match/174/"
 
-**Cookies not working:**
-- Check `SameSite` and `Secure` flags
-- Ensure proxy and backend use same protocol (HTTPS)
-- Cookies now automatically get Secure flag
+**Problem:** WebSocket URL not being rewritten correctly
 
-**"Not Secure" warning with valid SSL:**
-- This is **mixed content** (HTTPS page loading HTTP resources)
-- Check browser console for mixed content warnings
-- This version automatically upgrades HTTP → HTTPS
-- If persists, ensure backend doesn't force HTTP in responses
+**Solution:** This update fixes WebSocket URL rewriting. The proxy now correctly converts:
+- `/ws/match/174/` → `/dash0/ws/match/174/`
 
-**Content still showing as insecure:**
-- Clear browser cache (Ctrl+Shift+R)
-- Check that backend services support HTTPS
-- Verify CSP headers are being sent (check DevTools → Network → Headers)
+### Issue: "Not Found: /matches/multiplayer/"
 
-## Contributing
+**Problem:** Frontend JavaScript creating URLs without service prefix
 
-This is designed to be simple and hackable. Feel free to:
-- Add support for WebSockets
-- Implement caching layers
-- Add authentication middleware
-- Customize URL rewriting patterns
+**Root Cause:** Your backend's JavaScript is likely doing something like:
+```javascript
+// This bypasses the proxy's URL rewriting
+window.location = '/matches/multiplayer/';
+```
+
+**Solutions:**
+
+1. **Check your backend's JavaScript redirect logic**
+   - Look for `window.location =`, `window.location.href =`
+   - These should use relative URLs that get rewritten
+
+2. **If using a JavaScript framework router (React/Vue):**
+   ```javascript
+   // Bad: Hardcoded paths
+   router.push('/matches/multiplayer')
+   
+   // Good: Use basename/base path
+   const router = createRouter({
+     basename: '/dash0',  // or detect from window.location
+   })
+   ```
+
+3. **Quick backend fix - make it prefix-aware:**
+   ```javascript
+   // Add this to your backend's main.js
+   const BASE_PATH = '/' + window.location.pathname.split('/')[1];
+   
+   // Then use it everywhere:
+   window.location.href = BASE_PATH + '/matches/multiplayer/';
+   fetch(BASE_PATH + '/api/endpoint');
+   ```
+
+## Testing
+
+### Test WebSocket in Browser Console:
+```javascript
+const ws = new WebSocket('/dash0/ws/match/174/');
+ws.onopen = () => console.log('✅ WebSocket connected!');
+ws.onerror = (e) => console.error('❌ WebSocket error:', e);
+```
+
+### Expected Railway Logs:
+```
+[WS PROXY] Connecting to wss://dash0.up.railway.app/ws/match/174/
+```
+
+## Configuration
+
+Edit `config.py`:
+```python
+TARGET_DOMAIN_PATTERN = "{service}.up.railway.app"
+ALLOWED_SERVICES = []  # Leave empty to allow all
+BLOCKED_SERVICES = ['www', 'mail']
+```
+
+## Security Features
+
+- ✅ HTTPS enforcement
+- ✅ Secure WebSocket (wss://) upgrade
+- ✅ Mixed content prevention
+- ✅ Secure cookie flags
+- ✅ Content Security Policy
 
 ## License
 
-MIT - Use however you want!
-
-## Credits
-
-A simple tool for those who don't like adding subdomains. 🚀
+MIT
 
 ## Changelog
 
-### v2.0 - Security & HTTPS Enforcement
-- Added automatic HTTP → HTTPS upgrade
-- Mixed content prevention via CSP headers
-- Secure cookie flags
-- WebSocket protocol upgrade (ws → wss)
-- HTTPS redirect enforcement
+### v2.1 - WebSocket Support
+- Django Channels + Daphne for WebSocket
+- Fixes "Not Found: /ws/..." errors
+- Improved URL rewriting
+
+### v2.0 - HTTPS Enforcement
+- Mixed content prevention
+- Secure cookies
