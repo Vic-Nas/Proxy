@@ -232,57 +232,45 @@ def proxy_view(request, service, path=''):
 def rewrite_content(content, service):
     """Rewrite URLs in content to include service prefix."""
     
-    # Pattern for absolute API paths that should NOT be rewritten
-    # These are backend API endpoints that don't have the service prefix in their path
-    api_patterns = r'^/(api|rest|v\d+|graphql)(/|$)'
+    # Rewrite ALL absolute paths to include service prefix
+    # This ensures everything (assets, api, static, etc) routes through the proxy correctly
     
-    # Fix href/src/action - but NOT for API paths
+    # Fix href/src/action attributes - rewrite all "/" paths
     content = re.sub(
-        r'(href|src|action)="(/)(?!' + re.escape(service) + r'/)(?!' + api_patterns.replace(r'^/', '').replace(r'(/|$)', '') + r')',
+        r'(href|src|action)="(/)(?!' + re.escape(service) + r'/)',
         rf'\1="/{service}/',
         content
     )
-    content = re.sub(
-        r'(href|src|action)="(/(?!' + re.escape(service) + r'/|' + api_patterns.replace(r'^/', '').replace(r'(/|$)', '') + r')[^"]*)"',
-        rf'\1="/{service}\2"',
-        content
-    )
     
-    # Fix single quotes too
+    # Fix single quotes
     content = re.sub(
-        r"(href|src|action)='(/)(?!" + re.escape(service) + r"/|" + api_patterns.replace(r"^/", "").replace(r"(/|$)", "") + r")",
+        r"(href|src|action)='(/)(?!" + re.escape(service) + r"/)",
         rf"\1='/{service}/",
         content
     )
+    
+    # Fix fetch() and axios calls - rewrite all "/" paths
     content = re.sub(
-        r"(href|src|action)='(/(?!" + re.escape(service) + r"/|" + api_patterns.replace(r"^/", "").replace(r"(/|$)", "") + r")[^']*)'",
-        rf"\1='/{service}\2'",
+        r'(fetch|axios\.\w+|get|post|put|delete)\s*\(\s*["\']/((?!' + re.escape(service) + r'/)[^"\']*)["\']',
+        rf'\1("/{service}/\2"',
         content
     )
     
-    # Fix fetch() calls - but NOT for API paths
+    # Fix window.location assignments
     content = re.sub(
-        r'fetch\s*\(\s*["\']/((?!' + re.escape(service) + r'/|' + api_patterns.replace(r'^/', '').replace(r'(/|$)', '') + r')[^"\']*)["\']',
-        rf'fetch("/{service}/\1"',
-        content
-    )
-    
-    # Fix window.location assignments - but NOT for API paths
-    content = re.sub(
-        r'window\.location\s*=\s*["\']/((?!' + re.escape(service) + r'/|' + api_patterns.replace(r'^/', '').replace(r'(/|$)', '') + r')[^"\']*)["\']',
+        r'window\.location\s*=\s*["\']/((?!' + re.escape(service) + r'/)[^"\']*)["\']',
         rf'window.location="/{service}/\1"',
         content
     )
     content = re.sub(
-        r'window\.location\.href\s*=\s*["\']/((?!' + re.escape(service) + r'/|' + api_patterns.replace(r'^/', '').replace(r'(/|$)', '') + r')[^"\']*)["\']',
+        r'window\.location\.href\s*=\s*["\']/((?!' + re.escape(service) + r'/)[^"\']*)["\']',
         rf'window.location.href="/{service}/\1"',
         content
     )
     
-    # Don't rewrite JSON paths that are API endpoints
-    # Only rewrite navigation paths in JSON
+    # Fix JSON/string paths - rewrite "/" paths in strings
     content = re.sub(
-        r'"/((?!' + re.escape(service) + r'/|' + api_patterns.replace(r'^/', '').replace(r'(/|$)', '') + r')[a-zA-Z0-9/_-]+)"',
+        r'":/((?!' + re.escape(service) + r'/)[^"]*)"',
         rf'"/{service}/\1"',
         content
     )
