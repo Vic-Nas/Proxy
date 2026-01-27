@@ -5,22 +5,94 @@ import re
 from config import SERVICES, TARGET_DOMAIN_PATTERN, BLOCKED_SERVICES
 
 
+def unknown_service_page(service):
+    """Display landing page for unknown services."""
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+  <title>Service Not Found</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 50px auto; color: #666; background: #fafafa; }}
+    .container {{ background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
+    h1 {{ color: #ff6b6b; margin-top: 0; }}
+    .service-name {{ font-family: monospace; color: #0066cc; font-size: 1.1em; }}
+    .message {{ color: #666; line-height: 1.6; }}
+    a {{ color: #0066cc; text-decoration: none; }}
+    a:hover {{ text-decoration: underline; }}
+    .home-link {{ margin-top: 30px; }}
+    .home-link a {{ display: inline-block; background: #0066cc; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; }}
+    .home-link a:hover {{ background: #0052a3; }}
+    .buy-me-coffee {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; text-align: center; }}
+    .buy-me-coffee a {{ display: inline-block; background: #ffdd00; color: #000; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 10px; }}
+    .buy-me-coffee a:hover {{ background: #ffc800; }}
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>⚠️ Service Not Found</h1>
+  <p class="message">
+    The service <span class="service-name">{service}</span> could not be reached or doesn't exist.
+  </p>
+  <p class="message">
+    Please check that:
+  </p>
+  <ul style="color: #666;">
+    <li>The service name is correct</li>
+    <li>The service is currently running</li>
+    <li>The service is accessible from this proxy</li>
+  </ul>
+  
+  <div class="home-link">
+    <a href="/">← Back to Home</a>
+  </div>
+  
+  <div class="buy-me-coffee">
+    <p style="margin-top: 0;">Enjoying this proxy? Support the creator!</p>
+    <a href="https://buymeacoffee.com/vicnas" target="_blank">☕ Buy Me A Coffee</a>
+  </div>
+</div>
+</body></html>"""
+    return HttpResponse(html, status=404)
+
+
 def home(request):
     """Root path handler."""
     html = """<!DOCTYPE html>
 <html>
-<head><title>Reverse Proxy</title></head>
-<body style="font-family: sans-serif; max-width: 600px; margin: 50px auto;">
+<head>
+  <title>Reverse Proxy</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 50px auto; color: #333; }
+    h1 { color: #0066cc; }
+    .services { background: #f5f5f5; padding: 15px; border-radius: 8px; }
+    .services ul { list-style: none; padding: 0; }
+    .services li { padding: 8px 0; }
+    .services a { color: #0066cc; text-decoration: none; }
+    .services a:hover { text-decoration: underline; }
+    .buy-me-coffee { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; }
+    .buy-me-coffee a { display: inline-block; background: #ffdd00; color: #000; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 10px; }
+    .buy-me-coffee a:hover { background: #ffc800; }
+  </style>
+</head>
+<body>
 <h1>🔄 Proxy Active</h1>
 <p>Usage: <code>/{service}/{path}</code></p>
 """
     if SERVICES:
-        html += "<p>Services:</p><ul>"
+        html += '<div class="services"><p>Services:</p><ul>'
         for service, domain in SERVICES.items():
             html += f'<li><a href="/{service}/">{service}</a> → {domain}</li>\n'
-        html += "</ul>"
+        html += "</ul></div>"
     
-    html += "</body></html>"
+    html += """<div class="buy-me-coffee">
+  <p>Enjoying this proxy? Support the creator!</p>
+  <a href="https://buymeacoffee.com/vicnas" target="_blank">☕ Buy Me A Coffee</a>
+</div>
+</body></html>"""
     return HttpResponse(html)
 
 
@@ -36,6 +108,12 @@ def proxy_view(request, service, path=''):
         target_domain = SERVICES[service]
     else:
         target_domain = TARGET_DOMAIN_PATTERN.format(service=service)
+        # Test if service is reachable, if not show landing page
+        try:
+            test_resp = requests.head(f'https://{target_domain}', timeout=5, allow_redirects=False)
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout, requests.exceptions.RequestException):
+            # Service doesn't exist or is unreachable
+            return unknown_service_page(service)
     
     # Handle root service path
     if not path or path == '/':
