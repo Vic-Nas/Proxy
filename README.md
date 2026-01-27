@@ -15,7 +15,7 @@ Simple reverse proxy using URL paths instead of subdomains.
    ALLOWED_HOSTS=vicnas.me
    ```
 
-2. **Deploy to Railway**
+2. [**Deploy to Railway**](https://railway.com?referralCode=ZIdvo-)
 
 3. **Add custom domain** in Railway settings
 
