@@ -137,8 +137,11 @@ def proxy_view(request, service, path=''):
     try:
         headers = {}
         for k, v in request.headers.items():
-            if k.lower() not in ['connection', 'host']:
+            if k.lower() not in ['connection', 'host', 'accept-encoding']:
                 headers[k] = v
+        
+        # Don't accept encoding to get raw content
+        headers['Accept-Encoding'] = 'identity'
         
         if 'Referer' in headers:
             headers['Referer'] = re.sub(
@@ -156,6 +159,7 @@ def proxy_view(request, service, path=''):
         
         cookies = {key: value for key, value in request.COOKIES.items()}
         
+        # Disable automatic decompression to handle it manually
         resp = requests.request(
             method=request.method,
             url=url,
@@ -163,16 +167,17 @@ def proxy_view(request, service, path=''):
             data=request.body,
             cookies=cookies,
             allow_redirects=False,
-            timeout=30
+            timeout=30,
+            stream=True
         )
         
-        # Handle content encoding (decompress gzip/deflate)
-        content = resp.content
+        # Manually handle content encoding
+        content = resp.raw.read()
         if resp.headers.get('content-encoding') == 'gzip':
             try:
                 content = gzip.decompress(content)
-            except:
-                pass  # If decompression fails, use original content
+            except Exception as e:
+                print(f"[WARNING] Gzip decompression failed: {e}")
         
         content_type = resp.headers.get('content-type', '')
         
