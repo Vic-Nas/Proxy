@@ -1,24 +1,19 @@
-"""
-Configuration for the reverse proxy service.
-Modify these settings to match your deployment platform and domain pattern.
-"""
+"""Simple configuration - load service mappings from environment."""
+import os
 
-# Target domain pattern - {service} will be replaced with the service name
-# Examples:
-#   - Railway: "{service}.up.railway.app"
-#   - Render: "{service}.onrender.com"
-#   - Fly.io: "{service}.fly.dev"
-#   - Custom: "{service}.yourdomain.com"
+# Load service mappings from environment variables
+# Format: SERVICE_name=target.domain.com
+SERVICES = {}
+for key, value in os.environ.items():
+    if key.startswith('SERVICE_'):
+        service_name = key.replace('SERVICE_', '').lower()
+        SERVICES[service_name] = value
+
+# Fallback pattern if no SERVICE_ vars set
 TARGET_DOMAIN_PATTERN = "{service}.up.railway.app"
 
-# Django settings
-SECRET_KEY = 'change-me-in-production'  # Override with environment variable
-DEBUG = False
-ALLOWED_HOSTS = ['*']
+SECRET_KEY = os.environ.get('SECRET_KEY', 'change-me-in-production')
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
-# Optional: List of allowed service names (leave empty to allow all)
-# Example: ALLOWED_SERVICES = ['api', 'web', 'admin']
-ALLOWED_SERVICES = []
-
-# Optional: Block certain service names
 BLOCKED_SERVICES = ['www', 'mail', 'ftp', 'ssh']
