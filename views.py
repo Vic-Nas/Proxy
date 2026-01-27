@@ -228,12 +228,9 @@ def proxy_view(request, service, path=''):
 def rewrite_content(content, service):
     """Rewrite URLs in content to include service prefix."""
     
-    # For most apps, we DON'T want to rewrite API calls (like /api/, /rest/, etc)
-    # They should go directly to the backend without the service prefix
-    # We only rewrite navigation paths (/, /page, /assets, etc)
-    
-    # Pattern for API paths that should NOT be rewritten
-    api_patterns = r'^/(api|rest|v\d+|graphql|_next|__webpack|assets|public)/'
+    # Pattern for absolute API paths that should NOT be rewritten
+    # These are backend API endpoints that don't have the service prefix in their path
+    api_patterns = r'^/(api|rest|v\d+|graphql)/'
     
     # Fix href/src/action - but NOT for API paths
     content = re.sub(
