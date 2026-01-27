@@ -138,8 +138,11 @@ def proxy_view(request, service, path=''):
     try:
         headers = {}
         for k, v in request.headers.items():
-            if k.lower() not in ['connection', 'host']:
+            if k.lower() not in ['connection', 'host', 'accept-encoding']:
                 headers[k] = v
+        
+        # Request uncompressed content from backend
+        headers['Accept-Encoding'] = 'identity'
         
         if 'Referer' in headers:
             headers['Referer'] = re.sub(
@@ -167,22 +170,8 @@ def proxy_view(request, service, path=''):
             timeout=30
         )
         
-        # Get the raw content and check if we need to decompress
+        # Get the raw content (should be uncompressed since we requested identity encoding)
         content = resp.content
-        
-        # If response says it's compressed but requests didn't decompress it, do it manually
-        encoding = resp.headers.get('content-encoding', '').lower()
-        if encoding == 'gzip' and content[:2] == b'\x1f\x8b':  # gzip magic number
-            try:
-                content = gzip.decompress(content)
-            except Exception as e:
-                print(f"[WARNING] Failed to decompress gzip: {e}")
-        elif encoding == 'deflate' and content[:2] == b'x\x9c':  # deflate magic number
-            try:
-                import zlib
-                content = zlib.decompress(content)
-            except Exception as e:
-                print(f"[WARNING] Failed to decompress deflate: {e}")
         
         content_type = resp.headers.get('content-type', '')
         
