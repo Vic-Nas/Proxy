@@ -6,7 +6,6 @@ Simple reverse proxy using URL paths instead of subdomains.
 
 1. **Create `.env` file:**
    ```bash
-   SERVICE_dash0=dash0.up.railway.app
    SERVICE_api=api.up.railway.app
    SERVICE_calculum=calculum.up.railway.app
    
@@ -25,18 +24,10 @@ Simple reverse proxy using URL paths instead of subdomains.
 
 `/{service}/` routes to the domain configured in your `.env`
 
-Examples:
+<!-- Examples:
 - `https://vicnas.me/dash0/` → `https://dash0.up.railway.app/`
-- `https://vicnas.me/api/users` → `https://api.up.railway.app/users`
+- `https://vicnas.me/api/users` → `https://api.up.railway.app/users` -->
 
 ## Limitations
 
 - **No WebSocket support** - needs Nginx/Caddy
-
-## Fix Your Backend
-
-Add this to your backend's JavaScript:
-```javascript
-const BASE = '/' + window.location.pathname.split('/')[1];
-window.location = BASE + '/matches/multiplayer/';
-```
