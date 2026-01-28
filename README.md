@@ -58,5 +58,6 @@ Set `DEBUG=true` to:
 ## Contributing
 
 Keep it **light**, **clear**, and **general**. PRs welcome!
+But as this can be easily broken, Issues are better.
 
 **Live demo:** https://vicnas.me
