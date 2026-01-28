@@ -192,42 +192,6 @@ def proxy_view(request, service, path=''):
         if 'text/html' in content_type or 'javascript' in content_type or 'application/json' in content_type:
             text_content = content.decode('utf-8', errors='ignore')
             
-            # For HTML, inject transparency script
-            if 'text/html' in content_type:
-                proxy_script = f"""<script>
-(function() {{
-    const prefix = '/{service}/';
-    const strip = p => p?.startsWith(prefix) ? p.substring(prefix.length - 1) || '/' : p;
-    
-    // Make pathname return path without service prefix
-    const origPath = location.pathname;
-    Object.defineProperty(location, 'pathname', {{
-        get: () => strip(origPath),
-        configurable: true
-    }});
-    Object.defineProperty(document.location, 'pathname', {{
-        get: () => strip(origPath),
-        configurable: true
-    }});
-    
-    // Auto-add prefix when using history API
-    const addPrefix = url => typeof url === 'string' && url.startsWith('/') && !url.startsWith(prefix) ? prefix.slice(0, -1) + url : url;
-    const origPush = history.pushState;
-    const origReplace = history.replaceState;
-    history.pushState = (s, t, u) => origPush.call(history, s, t, addPrefix(u));
-    history.replaceState = (s, t, u) => origReplace.call(history, s, t, addPrefix(u));
-}})();
-</script>"""
-                # Inject before </head> or at start of <body> or at start of HTML
-                if '<head>' in text_content:
-                    text_content = text_content.replace('<head>', '<head>' + proxy_script, 1)
-                elif '<body>' in text_content:
-                    text_content = text_content.replace('<body>', '<body>' + proxy_script, 1)
-                elif '<html>' in text_content:
-                    text_content = text_content.replace('<html>', '<html>' + proxy_script, 1)
-                else:
-                    text_content = proxy_script + text_content
-            
             # Skip rewriting JS/JSON that contains external API calls
             if 'text/html' in content_type or ('api.' not in text_content and '://api' not in text_content):
                 text_content = rewrite_content(text_content, service)
@@ -273,7 +237,7 @@ def proxy_view(request, service, path=''):
 
 
 def rewrite_content(content, service):
-    """Rewrite relative URLs to include service prefix."""
+    """Rewrite relative URLs and pathname reads to work behind proxy."""
     
     def is_safe(match):
         """Check if match is inside an absolute URL."""
@@ -284,6 +248,18 @@ def rewrite_content(content, service):
     
     def rewrite(match, quote='"'):
         return match.group(1) + quote + f'/{service}' + match.group(2) + quote if is_safe(match) else match.group(0)
+    
+    # Rewrite window.location.pathname reads to strip service prefix
+    content = re.sub(
+        r'window\.location\.pathname',
+        f'window.location.pathname.replace(/^\/{service}/, "")||"/"',
+        content
+    )
+    content = re.sub(
+        r'location\.pathname',
+        f'location.pathname.replace(/^\/{service}/, "")||"/"',
+        content
+    )
     
     # Rewrite href/src/action attributes
     content = re.sub(r'((?:href|src|action)=")(/[a-zA-Z][^"]*)"', lambda m: rewrite(m, '"'), content)
