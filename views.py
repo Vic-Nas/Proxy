@@ -271,13 +271,15 @@ def rewrite_content(content, service):
     if pathname_count > 0:
         log(f"[REWRITE]   Found {pathname_count} pathname references, rewriting...")
     
+    # Match window.location.pathname (not preceded by document.)
     content = re.sub(
-        r'\bwindow\.location\.pathname\b',
+        r'(?<!document\.)window\.location\.pathname\b',
         f'(window.location.pathname.replace(/^\\/{service}\\//, "/"))',
         content
     )
+    # Match location.pathname (not preceded by window. or document.)
     content = re.sub(
-        r'\blocation\.pathname\b',
+        r'(?<!window\.)(?<!document\.)location\.pathname\b',
         f'(location.pathname.replace(/^\\/{service}\\//, "/"))',
         content
     )
