@@ -120,9 +120,15 @@ def home(request):
                 latest_fixes = f.read()
         except:
             pass
-    
+        
+    # Combine domain + base path for display
+    services_display = {}
+    for service, domain in SERVICES.items():
+        base_path = SERVICE_BASE_PATHS.get(service, '')
+        services_display[service] = domain + base_path
+
     html = render_template('home.html', {
-        'services': SERVICES,
+        'services': services_display,
         'version': __version__,
         'app_name': app_name,
         'show_fixes': SHOW_FIXES,
@@ -130,8 +136,7 @@ def home(request):
         'show_coffee': SHOW_COFFEE,
         'coffee_username': COFFEE_USERNAME,
     })
-    return HttpResponse(html)
-
+    
 
 def logs_view(request):
     """Show recent logs if LOGS=true."""
