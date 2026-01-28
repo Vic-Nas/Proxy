@@ -1,5 +1,5 @@
 # Changelog
 
-### Updated
+### Added
 
-CV Page title
+Favicon to cv
