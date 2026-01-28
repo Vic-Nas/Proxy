@@ -31,9 +31,12 @@ git push origin main
 If you want to bump major/minor instead of patch:
 
 ```bash
-# Create tag manually before pushing
+# Create tag manually
 git tag v2.0.0
-git push origin main --tags
+# Push your commit (if needed)
+git push origin main
+# Push your tag
+git push origin v2.0.0
 
 # GitHub Actions:
 # ✅ Runs tests
@@ -98,12 +101,12 @@ git push
 
 # Scenario 2: New feature (minor bump)
 git tag v1.1.0
-git push --tags
+git push origin v1.1.0
 # → v1.1.0 (manual tag)
 
 # Scenario 3: Breaking change (major bump)
 git tag v2.0.0
-git push --tags
+git push origin v2.0.0
 # → v2.0.0 (manual tag)
 ```
 
