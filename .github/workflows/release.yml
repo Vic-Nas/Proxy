@@ -4,7 +4,9 @@ on:
   push:
     branches: 
       - main
-      - '!**.md'
+    paths-ignore:
+      - 'CHANGELOG.md'
+      - 'README.md'
     tags:
       - 'v*'
 
