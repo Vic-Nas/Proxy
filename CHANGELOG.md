@@ -1,5 +1,5 @@
 # Changelog
 
-### Added
+### Updated
 
-DEBUG Notice
+CV Page title
