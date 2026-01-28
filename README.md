@@ -13,9 +13,9 @@ Route multiple services through a single domain using URL paths instead of subdo
 
 ```bash
 # 1. Set environment variables
+SECRET_KEY=your-secret-key # Random long string to secure the app
 SERVICE_dev=vicnasdev.github.io
 SERVICE_api=api.example.com
-SECRET_KEY=your-secret-key
 ```
 
 # 2. Deploy (Railway, Docker, VPS, etc.)

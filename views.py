@@ -4,7 +4,7 @@ from django.template import loader
 import requests
 import re
 import sys
-from config import SERVICES, TARGET_DOMAIN_PATTERN, BLOCKED_SERVICES, DEBUG, COFFEE_USERNAME, SHOW_COFFEE
+from config import SERVICES, BLOCKED_SERVICES, DEBUG, COFFEE_USERNAME, SHOW_COFFEE
 
 
 def log(msg):
@@ -58,33 +58,11 @@ def proxy_view(request, service, path=''):
     if service in BLOCKED_SERVICES:
         return JsonResponse({'error': 'Blocked'}, status=403)
     
-    # Get target domain from environment or use pattern
-    if service in SERVICES:
-        target_domain = SERVICES[service]
-    else:
-        target_domain = TARGET_DOMAIN_PATTERN.format(service=service)
-        # Test if service exists
-        try:
-            test_resp = requests.get(f'https://{target_domain}/', timeout=5, allow_redirects=True)
-            
-            # Check for various 404 indicators
-            if test_resp.status_code == 404:
-                return service_not_found(service, "Service returned 404")
-            
-            # Check for Railway's "not found" page
-            if 'Railway' in test_resp.text and 'not found' in test_resp.text.lower():
-                return service_not_found(service, "Railway service not found")
-            
-            # Check for GitHub's "404 - Page not found"
-            if 'github' in target_domain.lower() and '404' in test_resp.text and 'not found' in test_resp.text.lower():
-                return service_not_found(service, "GitHub page does not exist")
-                
-        except requests.exceptions.ConnectionError:
-            return service_not_found(service, "Cannot connect to target")
-        except requests.exceptions.Timeout:
-            return service_not_found(service, "Connection timeout")
-        except requests.exceptions.RequestException as e:
-            return service_not_found(service, f"Request failed: {str(e)}")
+    # Only allow explicitly defined services
+    if service not in SERVICES:
+        return service_not_found(service, "Service not configured")
+    
+    target_domain = SERVICES[service]
     
     # Ensure trailing slash for service root
     if not path or path == '/':
