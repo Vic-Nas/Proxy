@@ -17,6 +17,9 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'change-me-in-production')
 DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
+# Feature flags
+SHOW_FIXES = os.environ.get('FIXES', 'false').lower() == 'true'
+
 # Coffee button settings
 COFFEE_USERNAME = os.environ.get('COFFEE_USERNAME', 'vicnas')
 SHOW_COFFEE = os.environ.get('COFFEE', 'true').lower() == 'true'
