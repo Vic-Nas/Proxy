@@ -188,14 +188,10 @@ def proxy_view(request, service, path=''):
         
         content_type = resp.headers.get('content-type', '')
         
-        # Rewrite HTML and JS/JSON (unless it has API calls)
+        # Rewrite HTML and JS/JSON
         if 'text/html' in content_type or 'javascript' in content_type or 'application/json' in content_type:
             text_content = content.decode('utf-8', errors='ignore')
-            
-            # Skip rewriting JS/JSON that contains external API calls
-            if 'text/html' in content_type or ('api.' not in text_content and '://api' not in text_content):
-                text_content = rewrite_content(text_content, service)
-            
+            text_content = rewrite_content(text_content, service)
             response = HttpResponse(text_content, status=resp.status_code)
         elif 'javascript' in content_type or 'application/json' in content_type:
             text_content = content.decode('utf-8', errors='ignore')
@@ -239,17 +235,7 @@ def proxy_view(request, service, path=''):
 def rewrite_content(content, service):
     """Rewrite relative URLs and pathname reads to work behind proxy."""
     
-    def is_safe(match):
-        """Check if match is inside an absolute URL."""
-        start = max(0, match.start() - 20)
-        end = min(len(content), match.end() + 20)
-        context = content[start:end]
-        return not any(x in context for x in ['://', '.com', '.io', '.org', '.net', 'api.'])
-    
-    def rewrite(match, quote='"'):
-        return match.group(1) + quote + f'/{service}' + match.group(2) + quote if is_safe(match) else match.group(0)
-    
-    # Rewrite window.location.pathname reads to strip service prefix
+    # ALWAYS rewrite pathname reads (this doesn't touch API URLs)
     content = re.sub(
         r'\bwindow\.location\.pathname\b',
         f'(window.location.pathname.replace(/^\\/{service}\\//, "/"))',
@@ -261,11 +247,21 @@ def rewrite_content(content, service):
         content
     )
     
-    # Rewrite href/src/action attributes
+    def is_safe(match):
+        """Check if match is inside an absolute URL."""
+        start = max(0, match.start() - 20)
+        end = min(len(content), match.end() + 20)
+        context = content[start:end]
+        return not any(x in context for x in ['://', '.com', '.io', '.org', '.net', 'api.'])
+    
+    def rewrite(match, quote='"'):
+        return match.group(1) + quote + f'/{service}' + match.group(2) + quote if is_safe(match) else match.group(0)
+    
+    # Rewrite href/src/action attributes (but not if they're absolute URLs)
     content = re.sub(r'((?:href|src|action)=")(/[a-zA-Z][^"]*)"', lambda m: rewrite(m, '"'), content)
     content = re.sub(r"((?:href|src|action)=')(/[a-zA-Z][^']*)'", lambda m: rewrite(m, "'"), content)
     
-    # Rewrite fetch calls
+    # Rewrite fetch calls (but not if they're absolute URLs)
     content = re.sub(r'(fetch\s*\(\s*")(/[a-zA-Z][^"]*)"', lambda m: rewrite(m, '"'), content)
     
     return content
