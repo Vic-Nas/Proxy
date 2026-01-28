@@ -140,6 +140,8 @@ def home(request):
         'app_name': app_name,
         'show_fixes': SHOW_FIXES,
         'latest_fixes': latest_fixes,
+        'show_coffee': SHOW_COFFEE,
+        'coffee_username': COFFEE_USERNAME,
     })
     return HttpResponse(html)
 
