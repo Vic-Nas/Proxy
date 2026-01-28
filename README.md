@@ -17,8 +17,8 @@ SECRET_KEY=your-secret-key
 # 2. Deploy to Railway (includes free credits)
 ```
 [Deploy to Railway](https://railway.com?referralCode=ZIdvo-)
-- Fork && deploy or
-- Clone && railway up
+- Fork & deploy or
+- Clone & railway up
 
 ```bash
 # 3. Point DNS: yourdomain.com → your-proxy
