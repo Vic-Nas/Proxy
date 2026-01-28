@@ -3,6 +3,8 @@ name: Release
 on:
   push:
     branches: [ main ]
+    tags:
+      - 'v*'
 
 jobs:
   test:
@@ -10,6 +12,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
     
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -46,36 +50,63 @@ jobs:
       with:
         fetch-depth: 0
     
+    - name: Check for existing tag on current commit
+      id: check_current_tag
+      run: |
+        CURRENT_TAG=$(git tag --points-at HEAD | grep '^v' || echo "")
+        if [ -n "$CURRENT_TAG" ]; then
+          echo "has_tag=true" >> $GITHUB_OUTPUT
+          echo "current_tag=$CURRENT_TAG" >> $GITHUB_OUTPUT
+          echo "✅ Manual tag found on current commit: $CURRENT_TAG"
+        else
+          echo "has_tag=false" >> $GITHUB_OUTPUT
+          echo "ℹ️ No tag on current commit - will auto-version"
+        fi
+    
     - name: Get version from tags
       id: version
       run: |
-        # Get latest tag, default to v1.0.0 if none
-        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-        
-        # Strip 'v' prefix and split into parts
-        VERSION=${LATEST_TAG#v}
-        IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
-        
-        # Bump patch version
-        PATCH=$((PATCH + 1))
-        NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-        
-        echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-        echo "📦 Previous: $LATEST_TAG → New: v$NEW_VERSION"
-    
-    - name: Check if tag exists
-      id: check_tag
-      run: |
-        if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
-          echo "exists=true" >> $GITHUB_OUTPUT
-          echo "⚠️ Tag v${{ steps.version.outputs.version }} already exists"
+        if [ "${{ steps.check_current_tag.outputs.has_tag }}" == "true" ]; then
+          # Use the existing tag
+          TAG="${{ steps.check_current_tag.outputs.current_tag }}"
+          VERSION=${TAG#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Using manual tag: $TAG"
         else
-          echo "exists=false" >> $GITHUB_OUTPUT
-          echo "✅ Tag v${{ steps.version.outputs.version }} is new"
+          # Auto-increment patch version
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          VERSION=${LATEST_TAG#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Auto-versioning: $LATEST_TAG → v$NEW_VERSION"
         fi
     
+    - name: Check if release already exists
+      id: check_release
+      run: |
+        if gh release view "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "⚠️ Release v${{ steps.version.outputs.version }} already exists"
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "✅ Release v${{ steps.version.outputs.version }} is new"
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Create tag if auto-versioning
+      if: steps.check_current_tag.outputs.has_tag == 'false' && steps.check_release.outputs.exists == 'false'
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag "v${{ steps.version.outputs.version }}"
+        git push origin "v${{ steps.version.outputs.version }}"
+        echo "🏷️ Created and pushed tag v${{ steps.version.outputs.version }}"
+    
     - name: Create Release
-      if: steps.check_tag.outputs.exists == 'false'
+      if: steps.check_release.outputs.exists == 'false'
       uses: softprops/action-gh-release@v1
       with:
         tag_name: v${{ steps.version.outputs.version }}
@@ -87,19 +118,19 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Release created
-      if: steps.check_tag.outputs.exists == 'false'
+      if: steps.check_release.outputs.exists == 'false'
       run: echo "🎉 Released Flashy v${{ steps.version.outputs.version }}"
     
     - name: Already released
-      if: steps.check_tag.outputs.exists == 'true'
+      if: steps.check_release.outputs.exists == 'true'
       run: echo "ℹ️ Version v${{ steps.version.outputs.version }} already released"
 
     - name: Update version.py
-      if: steps.check_tag.outputs.exists == 'false'
+      if: steps.check_release.outputs.exists == 'false'
       run: |
         sed -i 's/__version__ = ".*"/__version__ = "${{ steps.version.outputs.version }}"/' version.py
         git config user.name "github-actions[bot]"
         git config user.email "github-actions[bot]@users.noreply.github.com"
         git add version.py
-        git commit -m "chore: bump version to ${{ steps.version.outputs.version }}"
-        git push
+        git commit -m "chore: bump version to ${{ steps.version.outputs.version }}" || echo "No changes to commit"
+        git push || echo "Nothing to push"
