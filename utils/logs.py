@@ -33,4 +33,7 @@ def render_logs():
     html = render_template('logs.html', {
         'log_lines': log_lines,
     })
-    return HttpResponse(html)
+    response = HttpResponse(html)
+    response['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    return response
