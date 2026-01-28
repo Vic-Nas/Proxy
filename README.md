@@ -15,12 +15,12 @@ Route multiple services through a single domain using URL paths instead of subdo
 SERVICE_dev=vicnasdev.github.io
 SERVICE_api=api.example.com
 SECRET_KEY=your-secret-key
+```
 
 # 2. Deploy (Railway, Docker, VPS, etc.)
 **Easiest:** [Deploy to Railway](https://railway.com?referralCode=ZIdvo-) (includes free credits)
 
 # 3. Point DNS: yourdomain.com → your-proxy
-```
 
 **Usage:** `yourdomain.com/dev/` → `vicnasdev.github.io/`
 
