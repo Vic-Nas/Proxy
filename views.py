@@ -236,6 +236,9 @@ def proxy_view(request, service, path=''):
                     # If it's a relative path, add service prefix
                     elif value.startswith('/'):
                         value = f'/{service}{value}'
+                # Remove cache headers for text content so it always gets rewritten
+                elif key.lower() in ['etag', 'cache-control', 'expires', 'last-modified'] and is_text:
+                    continue
                 response[key] = value
         
         if 'Set-Cookie' in resp.headers:
