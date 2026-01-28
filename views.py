@@ -6,7 +6,40 @@ import re
 import sys
 import os
 from collections import deque
-from config import SERVICES, BLOCKED_SERVICES, DEBUG, COFFEE_USERNAME, SHOW_COFFEE, ENABLE_LOGS
+from config import SERVICES, BLOCKED_SERVICES, DEBUG, COFFEE_USERNAME, SHOW_COFFEE, ENABLE_LOGS, SHOW_FIXES
+
+# Import version info
+try:
+    from version import __name__ as app_name
+except ImportError:
+    app_name = "Flashy"
+
+# Get version from git tags
+def get_version():
+    """Get version from git tags, fallback to version.py or 'dev'."""
+    try:
+        import subprocess
+        result = subprocess.run(
+            ['git', 'describe', '--tags', '--abbrev=0'],
+            capture_output=True,
+            text=True,
+            timeout=1
+        )
+        if result.returncode == 0:
+            return result.stdout.strip().lstrip('v')
+    except:
+        pass
+    
+    # Fallback to version.py
+    try:
+        from version import __version__
+        return __version__
+    except:
+        pass
+    
+    return "1.0.0"
+
+__version__ = get_version()
 
 # DEBUG mode does aggressive cache busting:
 # - Strips ALL cache headers (ETag, Cache-Control, Expires, Last-Modified, Age, Vary)
@@ -77,7 +110,37 @@ def error_page(title, message, error_type, service=None, target=None, status=502
 
 def home(request):
     """Show available services on homepage."""
-    html = render_template('home.html', {'services': {k: v for k, v in SERVICES.items() if v != 'internal-logs'}})
+    
+    # Get latest changelog if FIXES=true
+    latest_fixes = None
+    if SHOW_FIXES:
+        try:
+            changelog_path = os.path.join(os.path.dirname(__file__), 'CHANGELOG.md')
+            with open(changelog_path, 'r') as f:
+                content = f.read()
+                # Extract first version section
+                lines = content.split('\n')
+                in_version = False
+                fixes = []
+                for line in lines:
+                    if line.startswith('## ['):
+                        if in_version:
+                            break
+                        in_version = True
+                        continue
+                    if in_version and line.strip():
+                        fixes.append(line)
+                latest_fixes = '\n'.join(fixes[:15])  # First 15 lines
+        except:
+            pass
+    
+    html = render_template('home.html', {
+        'services': {k: v for k, v in SERVICES.items() if v != 'internal-logs'},
+        'version': __version__,
+        'app_name': app_name,
+        'show_fixes': SHOW_FIXES,
+        'latest_fixes': latest_fixes,
+    })
     return HttpResponse(html)
 
 

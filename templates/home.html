@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Reverse Proxy</title>
+  <title>{{ app_name }} v{{ version }}</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -14,6 +14,11 @@
     }
     h1 {
       color: #0066cc;
+      margin-bottom: 5px;
+    }
+    .version {
+      color: #999;
+      font-size: 0.9em;
       margin-bottom: 10px;
     }
     .usage {
@@ -59,12 +64,38 @@
       font-size: 0.9em;
       margin-left: 8px;
     }
+    .fixes {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin-top: 20px;
+      border-radius: 4px;
+    }
+    .fixes h2 {
+      margin-top: 0;
+      font-size: 1.1em;
+      color: #856404;
+    }
+    .fixes pre {
+      margin: 10px 0 0 0;
+      white-space: pre-wrap;
+      font-size: 0.85em;
+      color: #666;
+    }
   </style>
 </head>
 <body>
-  <h1>🔄 Proxy Active</h1>
+  <h1>🔄 {{ app_name }}</h1>
+  <div class="version">v{{ version }}</div>
   <p>Route multiple services through a single domain using URL paths.</p>
   <div class="usage">/{service}/{path}</div>
+  
+  {% if show_fixes and latest_fixes %}
+  <div class="fixes">
+    <h2>📋 Latest Changes</h2>
+    <pre>{{ latest_fixes }}</pre>
+  </div>
+  {% endif %}
   
   {% if services %}
   <div class="services">

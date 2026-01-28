@@ -43,12 +43,22 @@ jobs:
       with:
         fetch-depth: 0
     
-    - name: Get version
+    - name: Get version from tags
       id: version
       run: |
-        VERSION=$(python -c "from version import __version__; print(__version__)")
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "📦 Current version: $VERSION"
+        # Get latest tag, default to v1.0.0 if none
+        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+        
+        # Strip 'v' prefix and split into parts
+        VERSION=${LATEST_TAG#v}
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+        
+        # Bump patch version
+        PATCH=$((PATCH + 1))
+        NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+        
+        echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo "📦 Previous: $LATEST_TAG → New: v$NEW_VERSION"
     
     - name: Check if tag exists
       id: check_tag
@@ -61,25 +71,13 @@ jobs:
           echo "✅ Tag v${{ steps.version.outputs.version }} is new"
         fi
     
-    - name: Extract changelog
-      if: steps.check_tag.outputs.exists == 'false'
-      id: changelog
-      run: |
-        # Extract content for current version from CHANGELOG.md
-        VERSION="${{ steps.version.outputs.version }}"
-        CONTENT=$(sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$d' | tail -n +2)
-        
-        # Save to file for GitHub release
-        echo "$CONTENT" > release_notes.md
-        echo "📝 Extracted changelog for v$VERSION"
-    
     - name: Create Release
       if: steps.check_tag.outputs.exists == 'false'
       uses: softprops/action-gh-release@v1
       with:
         tag_name: v${{ steps.version.outputs.version }}
         name: Flashy v${{ steps.version.outputs.version }}
-        body_path: release_notes.md
+        body_path: CHANGELOG.md
         draft: false
         prerelease: false
       env:
@@ -91,4 +89,4 @@ jobs:
     
     - name: Already released
       if: steps.check_tag.outputs.exists == 'true'
-      run: echo "ℹ️ Version v${{ steps.version.outputs.version }} already released - update version.py to create new release"
+      run: echo "ℹ️ Version v${{ steps.version.outputs.version }} already released"
