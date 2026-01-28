@@ -1,5 +1,5 @@
 """Flashy app info."""
 
 __name__ = "Flashy"
-__version__ = "0.0.1"
+__version__ = "0.0.8"
 __description__ = "Path-based reverse proxy - route multiple services through one domain"
