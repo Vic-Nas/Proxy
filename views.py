@@ -112,25 +112,13 @@ def home(request):
     """Show available services on homepage."""
     
     # Get latest changelog if FIXES=true
+    # Get latest changelog if FIXES=true
     latest_fixes = None
     if SHOW_FIXES:
         try:
             changelog_path = os.path.join(os.path.dirname(__file__), 'CHANGELOG.md')
             with open(changelog_path, 'r') as f:
-                content = f.read()
-                # Extract first version section
-                lines = content.split('\n')
-                in_version = False
-                fixes = []
-                for line in lines:
-                    if line.startswith('## ['):
-                        if in_version:
-                            break
-                        in_version = True
-                        continue
-                    if in_version and line.strip():
-                        fixes.append(line)
-                latest_fixes = '\n'.join(fixes[:15])  # First 15 lines
+                latest_fixes = f.read()
         except:
             pass
     
