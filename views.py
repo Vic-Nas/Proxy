@@ -189,7 +189,8 @@ def proxy_view(request, service, path=''):
         content_type = resp.headers.get('content-type', '')
         
         # Rewrite HTML and JS/JSON
-        if 'text/html' in content_type or 'javascript' in content_type or 'application/json' in content_type:
+        is_text = any(x in content_type.lower() for x in ['text/', 'javascript', 'json'])
+        if is_text:
             text_content = content.decode('utf-8', errors='ignore')
             text_content = rewrite_content(text_content, service)
             response = HttpResponse(text_content, status=resp.status_code)
