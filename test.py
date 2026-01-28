@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Lightweight tests for the reverse proxy.
-Run with: python test_proxy.py
+Run with: python test.py
 """
 
 import unittest

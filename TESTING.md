@@ -4,10 +4,10 @@
 
 ```bash
 # Run all tests
-python test_proxy.py
+python test.py
 
 # Run with more detail
-python test_proxy.py -v
+python test.py -v
 ```
 
 ## What We Test
@@ -32,7 +32,7 @@ python test_proxy.py -v
 
 1. **Run the tests:**
    ```bash
-   python test_proxy.py
+   python test.py
    ```
 
 2. **Test manually with DEBUG mode:**

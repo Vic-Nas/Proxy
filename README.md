@@ -45,7 +45,7 @@ Keep it **light**, **clear**, and **general**. PRs welcome!
 
 ```bash
 # Run tests before submitting
-python test_proxy.py
+python test.py
 ```
 
 See [VERSIONING.md](VERSIONING.md) for releases.

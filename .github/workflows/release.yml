@@ -21,7 +21,7 @@ jobs:
     
     - name: Run tests
       id: tests
-      run: python test_proxy.py
+      run: python test.py
     
     - name: Tests passed
       if: success()
