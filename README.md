@@ -1,3 +1,7 @@
+![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
+![Django](https://img.shields.io/badge/django-5.0-green.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+
 # Flashy ⚡
 
 Path-based reverse proxy - route multiple services through one domain.
