@@ -1,10 +1,6 @@
 """URL rewriting logic for proxy."""
 import re
-
-
-def log(msg):
-    """Dummy log for testing"""
-    pass
+from utils.logging import log
 
 
 def rewrite_content(content, service, target_domain):
@@ -65,9 +61,9 @@ def rewrite_content(content, service, target_domain):
         # Add service prefix to relative URLs
         return f'{attr}{quote}/{service}{url}{quote}'
     
-    # Rewrite href/src/action attributes (only relative URLs starting with /)
+    # FIX: Changed [^"\'`]* to [^"\'`>]* to prevent matching across tags
     content = re.sub(
-        r'((?:href|src|action)=)(["\'`])(/(?!/).[^"\'`]*)\2',
+        r'((?:href|src|action)=)(["\'`])(/(?!/)[^"\'`>]*)\2',
         rewrite_url,
         content
     )
@@ -83,38 +79,6 @@ def rewrite_content(content, service, target_domain):
     content = re.sub(
         r'(location\.href\s*=\s*)(["\'`])(/(?!/).[^"\'`]*)\2',
         rewrite_url,
-        content
-    )
-    
-    # Rewrite standalone string literals containing paths
-    # This catches: const x = "/static/icon.svg" and `/static/${file}`
-    # But NOT comparison values like: if (path === "/about")
-    def rewrite_string_literal(match):
-        quote = match.group(1)
-        url = match.group(2)
-        
-        # Skip if already has service prefix
-        if url.startswith(f'/{service}/'):
-            return match.group(0)
-        
-        # Skip absolute URLs and special cases
-        if (url.startswith('http://') or url.startswith('https://') or 
-            url.startswith('//') or url.startswith('data:') or url.startswith('blob:')):
-            return match.group(0)
-        
-        # Skip short paths that look like routes (likely comparisons, not assets)
-        # Assets usually have extensions or are longer paths
-        if len(url) < 10 and '.' not in url and not url.startswith('/static'):
-            return match.group(0)
-        
-        # Add service prefix
-        return f'{quote}/{service}{url}{quote}'
-    
-    # Match string literals with paths, but be more permissive about what's before them
-    # Catches: var x="/path", const y = "/path", {key:"/path"}, ["/path"]
-    content = re.sub(
-        r'(["\'`])(/(?!/).[^"\'`]*)\1',
-        rewrite_string_literal,
         content
     )
     
