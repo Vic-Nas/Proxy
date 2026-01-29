@@ -1,4 +1,4 @@
-"""Logging utilities with smart aggregation and deduplication."""
+"""Logging utilities with ultra-compact time-windowed aggregation."""
 import sys
 import re
 from collections import deque, defaultdict
@@ -8,99 +8,161 @@ from config import ENABLE_LOGS
 # Simple in-memory log storage (last 1000 lines)
 LOG_BUFFER = deque(maxlen=1000)
 
-# Track asset batches per service
-_asset_batch = defaultdict(lambda: defaultdict(int))
+# Track all activity in time windows
+_activity_window = {
+    'start_time': None,
+    'services': defaultdict(lambda: {
+        'proxy': 0,
+        'rewrite': 0,
+        'assets': defaultdict(int)
+    }),
+    'errors': [],
+    'warnings': [],
+    'other': []
+}
 
-# Track consecutive similar messages
-_last_message_key = None
-_message_count = 1
-
-# Batch timing
-_batch_start_time = None
-
-
-def _normalize_url(url):
-    """Normalize URL for deduplication."""
-    # Remove query params and hashes
-    url = re.sub(r'[?#].*$', '', url)
-    # Extract just domain and path structure
-    match = re.search(r'https?://([^/]+)(/[^/]+)?', url)
-    if match:
-        return f"{match.group(1)}{match.group(2) or ''}"
-    return url
+# Configuration
+WINDOW_DURATION = 5.0  # seconds - aggregate everything in 5-second windows
+MAX_QUIET_TIME = 2.0  # seconds - flush if quiet for 2 seconds
 
 
-def _get_message_key(msg):
-    """Get a key for message deduplication."""
-    # PROXY requests - group by service
+def _get_service_from_message(msg):
+    """Extract service name from log message."""
+    # PROXY: /service/path
     proxy_match = re.search(r'\[PROXY\] GET /([^/]+)/', msg)
     if proxy_match:
-        return f"proxy:{proxy_match.group(1)}"
+        service = proxy_match.group(1)
+        # Map to friendly names
+        if service == 'mdn':
+            return 'MDN Web Docs'
+        elif service == 'club':
+            return 'Calculum Club'
+        return service
     
-    # REWRITE processing - group by domain
-    if '[REWRITE] Processing' in msg:
-        url_match = re.search(r'https?://([^/]+)', msg)
-        if url_match:
-            return f"rewrite:{url_match.group(1)}"
+    # REWRITE: domain
+    rewrite_match = re.search(r'\[REWRITE\] Processing ([^/\s]+)', msg)
+    if rewrite_match:
+        domain = rewrite_match.group(1)
+        if 'developer.mozilla.org' in domain:
+            return 'MDN Web Docs'
+        elif 'calculum' in domain:
+            return 'Calculum Club'
+        return domain.split('.')[0]
     
-    # Asset logs
-    if '[ASSETS]' in msg:
-        service_match = re.search(r'\[ASSETS\] ([^:]+):', msg)
-        if service_match:
-            return f"assets:{service_match.group(1)}"
-    
-    # Error/Warning - always show
-    if '[err]' in msg.lower() or '[warn]' in msg.lower():
-        return None
-    
-    # Generic dedup
-    return msg[:50]
+    return None
 
 
 def _extract_asset_info(msg):
     """Extract service and file types from asset log."""
-    # Match pattern: [ASSETS] service: Nx type
     match = re.search(r'\[ASSETS\] ([^:]+): (\d+)x (\w+)', msg)
     if match:
         return match.group(1), match.group(3), int(match.group(2))
     return None, None, None
 
 
-def _flush_batch(force=False):
-    """Flush accumulated asset batches."""
-    global _asset_batch, _batch_start_time
-    
-    if not _asset_batch:
-        return
-    
-    for service, types in _asset_batch.items():
-        if not types:
-            continue
-            
-        # Calculate totals
-        total_count = sum(types.values())
-        
-        # Build compact summary
-        type_summaries = [f"{count}{ftype}" for ftype, count in sorted(types.items())]
-        summary = f"[ASSETS] {service}: {', '.join(type_summaries)} ({total_count} total)"
-        
-        _write_log(summary)
-    
-    _asset_batch.clear()
-    _batch_start_time = None
-
-
 def _should_suppress(msg):
     """Check if message should be completely suppressed."""
     suppressable = [
-        '[REWRITE]   Found ',  # pathname reference counts
+        '[REWRITE]   Found ',
         '[REWRITE]   Content-Type:',
         '[REWRITE]   Contains pathname reads:',
         '[REWRITE]   Contains API calls:',
         '[REWRITE]   No changes made',
         '[REWRITE]   ✓ Modified',
+        '[... repeated',  # Suppress old-style repeat messages
     ]
     return any(s in msg for s in suppressable)
+
+
+def _flush_window(force=False):
+    """Flush the current activity window."""
+    global _activity_window
+    
+    window = _activity_window
+    
+    # Check if window should be flushed
+    if window['start_time']:
+        elapsed = (datetime.utcnow() - window['start_time']).total_seconds()
+        should_flush = force or elapsed >= WINDOW_DURATION
+        
+        if not should_flush:
+            # Check for quiet time
+            if not window['services'] and elapsed >= MAX_QUIET_TIME:
+                should_flush = True
+        
+        if not should_flush:
+            return
+    
+    # Nothing to flush
+    if not window['services'] and not window['errors'] and not window['warnings'] and not window['other']:
+        return
+    
+    # Flush errors first (always show these immediately)
+    for error_msg in window['errors']:
+        _write_log(f"❌ {error_msg}")
+    
+    # Flush warnings
+    for warn_msg in window['warnings']:
+        _write_log(f"⚠️  {warn_msg}")
+    
+    # Flush aggregated service activity
+    if window['services']:
+        # Sort by total activity
+        service_activity = []
+        for service, data in window['services'].items():
+            total = data['proxy'] + data['rewrite'] + sum(data['assets'].values())
+            service_activity.append((total, service, data))
+        
+        service_activity.sort(reverse=True)
+        
+        for _, service, data in service_activity:
+            parts = []
+            
+            if data['proxy'] > 0:
+                parts.append(f"{data['proxy']} req")
+            
+            if data['rewrite'] > 0:
+                parts.append(f"{data['rewrite']} rw")
+            
+            if data['assets']:
+                total_assets = sum(data['assets'].values())
+                # Group similar asset types
+                asset_types = {}
+                for ftype, count in data['assets'].items():
+                    # Simplify asset type names
+                    if ftype in ['css', 'js', 'html']:
+                        category = 'code'
+                    elif ftype in ['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp']:
+                        category = 'img'
+                    elif ftype in ['woff', 'woff2', 'ttf', 'otf']:
+                        category = 'font'
+                    else:
+                        category = ftype
+                    
+                    asset_types[category] = asset_types.get(category, 0) + count
+                
+                asset_str = '+'.join(f"{count}{cat}" for cat, count in sorted(asset_types.items()))
+                parts.append(f"{total_assets} assets ({asset_str})")
+            
+            if parts:
+                _write_log(f"📊 {service}: {' | '.join(parts)}")
+    
+    # Flush other messages
+    for other_msg in window['other']:
+        _write_log(other_msg)
+    
+    # Reset window
+    _activity_window = {
+        'start_time': None,
+        'services': defaultdict(lambda: {
+            'proxy': 0,
+            'rewrite': 0,
+            'assets': defaultdict(int)
+        }),
+        'errors': [],
+        'warnings': [],
+        'other': []
+    }
 
 
 def _write_log(msg):
@@ -115,77 +177,61 @@ def _write_log(msg):
 
 def log(msg):
     """Log with smart deduplication and aggregation."""
-    global _last_message_key, _message_count, _batch_start_time
+    global _activity_window
     
     # Completely suppress certain messages
     if _should_suppress(msg):
         return
     
-    # Handle asset logs - aggregate them
+    # Initialize window if needed
+    if _activity_window['start_time'] is None:
+        _activity_window['start_time'] = datetime.utcnow()
+    
+    # Categorize the message
+    msg_lower = msg.lower()
+    
+    # Check for errors - always show immediately
+    if '[err]' in msg_lower or 'error' in msg_lower:
+        _flush_window(force=True)
+        _write_log(f"❌ {msg}")
+        return
+    
+    # Check for warnings
+    if '[warn]' in msg_lower or 'warning' in msg_lower:
+        _activity_window['warnings'].append(msg)
+        _flush_window()
+        return
+    
+    # Handle asset logs
     service, filetype, count = _extract_asset_info(msg)
     if service and filetype:
-        _asset_batch[service][filetype] += count
-        
-        # Start batch timer
-        if _batch_start_time is None:
-            _batch_start_time = datetime.utcnow()
-        
-        # Flush if batch is getting old (>5 seconds) or large
-        if _batch_start_time:
-            age = (datetime.utcnow() - _batch_start_time).total_seconds()
-            total_assets = sum(sum(t.values()) for t in _asset_batch.values())
-            
-            if age > 5 or total_assets > 100:
-                _flush_batch()
-        
+        _activity_window['services'][service]['assets'][filetype] += count
+        _flush_window()
         return
     
-    # Flush any pending asset batch before logging other messages
-    if _asset_batch:
-        _flush_batch()
-    
-    # Get message key for deduplication
-    msg_key = _get_message_key(msg)
-    
-    # If same as last message, increment counter
-    if msg_key and msg_key == _last_message_key:
-        _message_count += 1
-        return
-    
-    # If we were counting duplicates, show the summary
-    if _last_message_key and _message_count > 1:
-        summary = f"[... repeated {_message_count} times]"
-        _write_log(summary)
-    
-    # Reset counter and log new message
-    _last_message_key = msg_key
-    _message_count = 1
-    
-    # Shorten long URLs in PROXY logs
+    # Handle PROXY requests
     if '[PROXY] GET' in msg:
-        msg = re.sub(r'(https?://[^/]+/[^/]+/).*', r'\1...', msg)
+        service = _get_service_from_message(msg)
+        if service:
+            _activity_window['services'][service]['proxy'] += 1
+            _flush_window()
+            return
     
-    # Shorten long URLs in REWRITE logs
+    # Handle REWRITE processing
     if '[REWRITE] Processing' in msg:
-        url = re.search(r'https?://[^\s]+', msg)
-        if url:
-            short_url = _normalize_url(url.group(0))
-            msg = msg.replace(url.group(0), short_url + '...')
+        service = _get_service_from_message(msg)
+        if service:
+            _activity_window['services'][service]['rewrite'] += 1
+            _flush_window()
+            return
     
+    # Other messages - flush window first, then log
+    _flush_window(force=True)
     _write_log(msg)
 
 
 def get_log_buffer():
     """Get the log buffer for display."""
-    # Flush any pending batches
-    _flush_batch(force=True)
-    
-    # Flush any pending duplicate count
-    global _last_message_key, _message_count
-    if _last_message_key and _message_count > 1:
-        summary = f"[... repeated {_message_count} times]"
-        _write_log(summary)
-        _last_message_key = None
-        _message_count = 1
-    
+    # Flush any pending window
+    _flush_window(force=True)
     return LOG_BUFFER

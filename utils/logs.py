@@ -10,11 +10,14 @@ def _classify_log_line(line):
     lower_line = line.lower()
     
     # Priority order matters
-    if '[err]' in lower_line or 'error' in lower_line or 'not found' in lower_line:
+    if '❌' in line or '[err]' in lower_line or 'error' in lower_line:
         return 'error'
     
-    if '[warn]' in lower_line or 'warning' in lower_line:
+    if '⚠️' in line or '[warn]' in lower_line or 'warning' in lower_line:
         return 'warning'
+    
+    if '📊' in line:
+        return 'batch'
     
     if '[assets]' in lower_line:
         return 'assets'
@@ -77,8 +80,7 @@ def render_logs():
         'total': len(log_lines),
         'errors': sum(1 for l in log_lines if l['css_class'] == 'error'),
         'warnings': sum(1 for l in log_lines if l['css_class'] == 'warning'),
-        'assets': sum(1 for l in log_lines if l['css_class'] == 'assets'),
-        'proxy': sum(1 for l in log_lines if l['css_class'] == 'proxy'),
+        'batches': sum(1 for l in log_lines if l['css_class'] == 'batch'),
     }
     
     html = render_template('logs.html', {
