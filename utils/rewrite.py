@@ -1,6 +1,10 @@
 """URL rewriting logic for proxy."""
 import re
-from utils.logging import log
+
+
+def log(msg):
+    """Dummy log for testing"""
+    pass
 
 
 def rewrite_content(content, service, target_domain):
@@ -11,7 +15,6 @@ def rewrite_content(content, service, target_domain):
     1. window.location.pathname → strips /service/ prefix so apps see clean paths
     2. Relative URLs (/path) → adds /service/ prefix so they route through proxy
     3. Base tag → adds /service/ prefix to base href
-    4. String literals → catches `/static/file.svg` in JS variables
     """
     
     # Rewrite pathname reads to hide the /service/ prefix from JavaScript
@@ -107,8 +110,10 @@ def rewrite_content(content, service, target_domain):
         # Add service prefix
         return f'{quote}/{service}{url}{quote}'
     
+    # Match string literals with paths, but be more permissive about what's before them
+    # Catches: var x="/path", const y = "/path", {key:"/path"}, ["/path"]
     content = re.sub(
-        r'(?<![=\w])(["\'`])(/(?!/).[^"\'`]*)\1',
+        r'(["\'`])(/(?!/).[^"\'`]*)\1',
         rewrite_string_literal,
         content
     )
