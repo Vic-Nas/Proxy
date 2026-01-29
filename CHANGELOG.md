@@ -1,5 +1,10 @@
 # Changelog
 
+
+## Improved
+
+- Logs readability
+
 ### Removed
 
 - robots.txt not found error in lods
