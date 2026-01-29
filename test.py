@@ -81,6 +81,18 @@ class TestURLRewriting(unittest.TestCase):
         self.assertIn('href="/club/meets"', result)
         self.assertIn('href="/club/events"', result)
 
+    def test_css_url_rewriting(self):
+        """CSS background-image URLs should be rewritten"""
+        css = 'background-image: url("/static/icon.svg");'
+        result = rewrite_content(css, 'club', 'example.com')
+        self.assertIn('url("/club/static/icon.svg")', result)
+    
+    def test_svg_use_href(self):
+        """SVG <use> elements with href should be rewritten"""
+        svg = '<use href="/static/sprite.svg#icon"></use>'
+        result = rewrite_content(svg, 'club', 'example.com')
+        self.assertIn('href="/club/static/sprite.svg#icon"', result)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
