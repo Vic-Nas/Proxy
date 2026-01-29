@@ -82,11 +82,6 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 COFFEE_USERNAME = os.environ.get('COFFEE_USERNAME', 'vicnas')
 SHOW_COFFEE = os.environ.get('COFFEE', 'true').lower() == 'true'
 
-# Logs service - if LOGS=true, adds a /_logs/ service
-ENABLE_LOGS = os.environ.get('LOGS', 'false').lower() == 'true'
-if ENABLE_LOGS:
-    SERVICES['_logs'] = 'internal-logs'
-    SERVICE_BASE_PATHS['_logs'] = ''
-    SERVICE_RANKS['_logs'] = 999
+BLOCKED_SERVICES = ['www', 'mail', 'ftp', 'ssh']
 
 BLOCKED_SERVICES = ['www', 'mail', 'ftp', 'ssh']

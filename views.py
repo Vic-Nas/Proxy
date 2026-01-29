@@ -2,7 +2,7 @@ from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 import requests
 
-from config import SERVICES, SERVICE_BASE_PATHS, BLOCKED_SERVICES, ENABLE_LOGS
+from config import SERVICES, SERVICE_BASE_PATHS, BLOCKED_SERVICES
 from utils.version import get_version
 from utils.logging import log
 from utils.templates import render_template, service_not_found, error_page
@@ -28,7 +28,7 @@ def home(request):
     return render_home(app_name, __version__)
 
 def logs_view(request):
-    """Show recent logs if LOGS=true."""
+    """Show recent logs page."""
     return render_logs()
 
 
@@ -37,7 +37,7 @@ def proxy_view(request, service, path=''):
     """Main proxy logic - forwards requests to backend services or serves local templates."""
     
     # Handle internal logs service
-    if service == '_logs' and ENABLE_LOGS:
+    if service == '_logs':
         return logs_view(request)
     
     # Block reserved service names

@@ -58,7 +58,6 @@ The proxy rewrites URLs so JavaScript apps work transparently:
 | `SERVICE_*_RANK` | `999` | Optional rank for ordering services (e.g., `SERVICE_api_RANK=1`) |
 | `SECRET_KEY` | `change-me-in-production` | Django secret key |
 | `DEBUG` | `false` | Verbose logs, no caching |
-| `LOGS` | `false` | Enable `/_logs/` endpoint |
 | `COFFEE` | `true` | Show coffee button on errors |
 | `COFFEE_USERNAME` | `vicnas` | Coffee button username |
 

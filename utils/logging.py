@@ -3,7 +3,7 @@ import sys
 import re
 from collections import deque, defaultdict
 from datetime import datetime
-from config import ENABLE_LOGS
+## No ENABLE_LOGS needed; logs always available if template exists
 
 # Simple in-memory log storage (last 1000 lines)
 LOG_BUFFER = deque(maxlen=1000)
@@ -171,9 +171,8 @@ def _write_log(msg):
     sys.stdout.write(f"{msg}\n")
     sys.stdout.flush()
     
-    if ENABLE_LOGS:
-        timestamp = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-        LOG_BUFFER.append(f"{timestamp} [inf] {msg}")
+    timestamp = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    LOG_BUFFER.append(f"{timestamp} [inf] {msg}")
 
 
 def log(msg):
