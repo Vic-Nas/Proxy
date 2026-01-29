@@ -120,10 +120,12 @@ def _flush_window(force=False):
             parts = []
             
             if data['proxy'] > 0:
-                parts.append(f"{data['proxy']} request")
+                n = data['proxy']
+                parts.append(f"{n} request{'s' if n != 1 else ''}")
             
             if data['rewrite'] > 0:
-                parts.append(f"{data['rewrite']} rewrite")
+                n = data['rewrite']
+                parts.append(f"{n} rewrite{'s' if n != 1 else ''}")
             
             if data['assets']:
                 total_assets = sum(data['assets'].values())
