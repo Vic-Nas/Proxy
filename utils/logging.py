@@ -69,6 +69,7 @@ def _should_suppress(msg):
         '[REWRITE]   Contains API calls:',
         '[REWRITE]   No changes made',
         '[REWRITE]   ✓ Modified',
+        'Not Found: /robots.txt',
         '[... repeated',  # Suppress old-style repeat messages
     ]
     return any(s in msg for s in suppressable)
