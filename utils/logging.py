@@ -1,9 +1,19 @@
 """Logging utilities with ultra-compact time-windowed aggregation."""
+import os
 import sys
 import re
 from collections import deque, defaultdict
 from datetime import datetime
-## No ENABLE_LOGS needed; logs always available if template exists
+
+# ---------------------------------------------------------------------------
+# LOG_LEVEL  (set via environment variable)
+#   error  – only errors
+#   info   – errors + warnings + aggregated batch summaries (default)
+#   debug  – everything, including per-request rewrite detail & asset logs
+# ---------------------------------------------------------------------------
+LOG_LEVEL = os.environ.get('LOG_LEVEL', 'info').strip().lower()
+if LOG_LEVEL not in ('error', 'info', 'debug'):
+    LOG_LEVEL = 'info'
 
 # Simple in-memory log storage (last 1000 lines)
 LOG_BUFFER = deque(maxlen=1000)
@@ -61,7 +71,17 @@ def _extract_asset_info(msg):
 
 
 def _should_suppress(msg):
-    """Check if message should be completely suppressed."""
+    """
+    Check if message should be suppressed at current LOG_LEVEL.
+
+    debug  → nothing suppressed
+    info   → rewrite internals and robots.txt suppressed
+    error  → everything except errors suppressed (handled in log())
+    """
+    if LOG_LEVEL == 'debug':
+        return False          # show everything
+
+    # These are the rewrite-detail lines that are noisy at info level
     suppressable = [
         '[REWRITE]   Found ',
         '[REWRITE]   Content-Type:',
@@ -102,12 +122,13 @@ def _flush_window(force=False):
     for error_msg in window['errors']:
         _write_log(f"❌ {error_msg}")
     
-    # Flush warnings
-    for warn_msg in window['warnings']:
-        _write_log(f"⚠️  {warn_msg}")
+    # Flush warnings (info and above)
+    if LOG_LEVEL != 'error':
+        for warn_msg in window['warnings']:
+            _write_log(f"⚠️  {warn_msg}")
     
-    # Flush aggregated service activity
-    if window['services']:
+    # Flush aggregated service activity (info and above)
+    if LOG_LEVEL != 'error' and window['services']:
         # Sort by total activity
         service_activity = []
         for service, data in window['services'].items():
@@ -150,9 +171,10 @@ def _flush_window(force=False):
             if parts:
                 _write_log(f"📊 {service}: {' | '.join(parts)}")
     
-    # Flush other messages
-    for other_msg in window['other']:
-        _write_log(other_msg)
+    # Flush other messages (info and above)
+    if LOG_LEVEL != 'error':
+        for other_msg in window['other']:
+            _write_log(other_msg)
     
     # Reset window
     _activity_window = {
@@ -181,7 +203,7 @@ def log(msg):
     """Log with smart deduplication and aggregation."""
     global _activity_window
     
-    # Completely suppress certain messages
+    # Completely suppress certain messages based on LOG_LEVEL
     if _should_suppress(msg):
         return
     
@@ -192,10 +214,14 @@ def log(msg):
     # Categorize the message
     msg_lower = msg.lower()
     
-    # Check for errors - always show immediately
+    # Check for errors - always show immediately at every level
     if '[err]' in msg_lower or 'error' in msg_lower:
         _flush_window(force=True)
         _write_log(f"❌ {msg}")
+        return
+
+    # Everything below here is silenced at error level
+    if LOG_LEVEL == 'error':
         return
     
     # Check for warnings

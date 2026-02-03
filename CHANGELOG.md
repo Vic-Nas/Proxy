@@ -4,6 +4,7 @@
 ## Improved
 
 - Logs readability
+- Log levels
 
 ### Removed
 

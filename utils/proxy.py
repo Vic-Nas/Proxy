@@ -1,9 +1,10 @@
 """Proxy request handling."""
+import os
 import requests
 import re
 from django.http import HttpResponse
 from config import DEBUG
-from utils.logging import log
+from utils.logging import log, LOG_LEVEL
 from utils.templates import error_page, path_not_found
 from utils.rewrite import rewrite_content
 
@@ -37,11 +38,25 @@ def prepare_headers(request, service, target_domain):
 
 
 def should_log_request(path):
-    """Determine if this request should be logged."""
-    if DEBUG:
-        return True
+    """
+    Determine if this request should be logged.
+
+    LOG_LEVEL=debug  → log everything (same as DEBUG=True)
+    LOG_LEVEL=info   → skip static asset requests
+    LOG_LEVEL=error  → skip everything (errors still logged via log())
     
-    # Skip logging for static assets in non-DEBUG mode
+    Falls back to the DEBUG flag when LOG_LEVEL is not set explicitly,
+    preserving existing behaviour.
+    """
+    # debug level: log all requests
+    if LOG_LEVEL == 'debug' or DEBUG:
+        return True
+
+    # error level: silence all non-error traffic
+    if LOG_LEVEL == 'error':
+        return False
+
+    # info level: skip known static asset extensions
     asset_extensions = ['.svg', '.ico', '.css', '.js', '.png', '.jpg', '.woff', '.woff2', '.ttf']
     return not any(path.endswith(ext) for ext in asset_extensions)
 
