@@ -1,6 +1,6 @@
 """Homepage rendering."""
 from django.http import HttpResponse
-from config import SERVICES, SERVICE_BASE_PATHS, SERVICE_DESCRIPTIONS, SERVICE_RANKS, SHOW_COFFEE, COFFEE_USERNAME, DEBUG
+from config import SERVICES, SERVICE_BASE_PATHS, SERVICE_DESCRIPTIONS, SERVICE_RANKS, SERVICE_HIDDEN, SHOW_COFFEE, COFFEE_USERNAME, DEBUG
 from utils.templates import render_template
 
 
@@ -8,6 +8,9 @@ def build_services_list():
     """Build sorted list of services for display."""
     services_list = []
     for service, domain in SERVICES.items():
+        # Skip services marked hidden
+        if SERVICE_HIDDEN.get(service, False):
+            continue
         base_path = SERVICE_BASE_PATHS.get(service, '')
         
         # Check if this is a local template
