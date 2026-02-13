@@ -9,6 +9,7 @@ SERVICES = {}
 SERVICE_BASE_PATHS = {}
 SERVICE_DESCRIPTIONS = {}
 SERVICE_RANKS = {}
+SERVICE_HIDDEN = {}
 LOCAL_TEMPLATES = {}  # Maps service name to template filename
 
 # Auto-detect local templates
@@ -66,12 +67,18 @@ for key, value in os.environ.items():
                 SERVICE_RANKS[service_name] = 999
         else:
             SERVICE_RANKS[service_name] = 999
+        # Load optional hide flag (default: visible)
+        hide_key = f'SERVICE_{service_name}_HIDE'
+        # If set to 'true' (case-insensitive) the service will be hidden from homepage
+        SERVICE_HIDDEN[service_name] = os.environ.get(hide_key, 'false').lower() == 'true'
 
 # Add local templates as services with lower priority (rank 1000)
 for service_name, template_file in LOCAL_TEMPLATES.items():
     SERVICES[service_name] = f'local-template:{template_file}'
     SERVICE_BASE_PATHS[service_name] = ''
     SERVICE_RANKS[service_name] = 1000
+    # Local templates default to visible unless overridden
+    SERVICE_HIDDEN[service_name] = os.environ.get(f'SERVICE_{service_name}_HIDE', 'false').lower() == 'true'
     # Description defaults to empty unless there's a comment in the template
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'change-me-in-production')

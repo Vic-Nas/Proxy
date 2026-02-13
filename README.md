@@ -56,6 +56,7 @@ The proxy rewrites URLs so JavaScript apps work transparently:
 | `SERVICE_*` | - | Service mappings (e.g., `SERVICE_dev=example.com/path` or just create template `dev.html`) |
 | `SERVICE_*_DESC` | _(optional)_ | Description for a service (e.g., `SERVICE_dev_DESC=Development site`) |
 | `SERVICE_*_RANK` | `999` | Optional rank for ordering services (e.g., `SERVICE_api_RANK=1`) |
+| `SERVICE_*_HIDE` | `false` | Optional per-service hide flag. Set `SERVICE_<name>_HIDE=true` to hide that service from the homepage (local templates respect this flag). |
 | `SECRET_KEY` | `change-me-in-production` | Django secret key |
 | `DEBUG` | `false` | Verbose logs, no caching |
 | `COFFEE` | `true` | Show coffee button on errors |

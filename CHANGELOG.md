@@ -1,5 +1,7 @@
 # Changelog
 
+## Added
+HIDE flag
 
 ## Improved
 
