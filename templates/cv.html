@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>CV | Victorio</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+<title>template_CV.md</title>
 <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
 
 <style>
@@ -305,52 +304,116 @@ pre code {
 
 <style>
 /*
- * Markdown PDF CSS
+ * CV Print Style - One Page Optimized
  */
 
- body {
-	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
-	padding: 0 12px;
+@page {
+  margin: 0.3in;
+  size: A4;
 }
 
-pre {
-	background-color: #f8f8f8;
-	border: 1px solid #cccccc;
-	border-radius: 3px;
-	overflow-x: auto;
-	white-space: pre-wrap;
-	overflow-wrap: break-word;
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 10pt;
+  line-height: 1.3;
+  padding: 0.2in;
+  color: #333;
+  max-width: 8.5in;
 }
 
-pre:not(.hljs) {
-	padding: 23px;
-	line-height: 19px;
+h1 {
+  font-size: 18pt;
+  font-weight: 700;
+  margin: 0 0 0.1in 0;
+  padding: 0;
+  border: none;
+  line-height: 1.1;
 }
 
-blockquote {
-	background: rgba(127, 127, 127, 0.1);
-	border-color: rgba(0, 122, 204, 0.5);
+h2 {
+  font-size: 11pt;
+  font-weight: 600;
+  margin: 0.08in 0 0.05in 0;
+  padding: 0;
+  border-bottom: 1px solid #999;
+  color: #1a1a1a;
 }
 
-.emoji {
-	height: 1.4em;
+p {
+  margin: 0 0 0.04in 0;
+  padding: 0;
+}
+
+ul {
+  margin: 0.04in 0;
+  padding-left: 1.2em;
+}
+
+li {
+  margin: 0 0 0.03in 0;
+  padding: 0;
+}
+
+strong {
+  font-weight: 600;
+  color: #000;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 0.06in 0;
+  height: 0;
+}
+
+a {
+  color: #0066cc;
+  text-decoration: none;
 }
 
 code {
-	font-size: 14px;
-	line-height: 19px;
+  background: #f0f0f0;
+  padding: 0.02in 0.05in;
+  border-radius: 2px;
+  font-size: 9pt;
+  font-family: 'Courier New', monospace;
+  color: #555;
 }
 
-/* for inline code */
-:not(pre):not(.hljs) > code {
-	color: #C9AE75; /* Change the old color so it seems less like an error */
-	font-size: inherit;
+/* Contact line compacting */
+#victorio-nascimento + p {
+  margin-bottom: 0.06in;
 }
 
-/* Page Break : use <div class="page"/> to insert page break
--------------------------------------------------------- */
-.page {
-	page-break-after: always;
+/* Reduce spacing in sections */
+h2 + p {
+  margin-top: 0;
+}
+
+/* Skills line breaking for space */
+strong + code {
+  display: inline-block;
+  margin-right: 0.1in;
+  white-space: nowrap;
+}
+
+/* Print optimization */
+@media print {
+  body {
+    padding: 0.15in;
+  }
+  
+  h1 {
+    page-break-after: avoid;
+  }
+  
+  h2 {
+    page-break-after: avoid;
+  }
+  
+  ul {
+    page-break-inside: avoid;
+  }
 }
 
 </style>
@@ -366,109 +429,62 @@ code {
           : 'default'
     });
   </script>
-<style>
-body {
-  font-size: 9pt;
-  line-height: 1.4;
-  margin: 0.3cm 0.5cm;
-}
-h1 {
-  font-size: 16pt;
-  margin-top: 0;
-  margin-bottom: 0.25cm;
-}
-h2 {
-  font-size: 11pt;
-  margin-top: 0.35cm;
-  margin-bottom: 0.18cm;
-  border-bottom: 1px solid #ddd;
-}
-p, ul {
-  margin-top: 0.12cm;
-  margin-bottom: 0.12cm;
-}
-ul {
-  padding-left: 1.2em;
-}
-li {
-  margin-bottom: 0.08cm;
-}
-hr {
-  margin: 0.22cm 0;
-  border: none;
-  border-top: 1px solid #ddd;
-}
-strong {
-  font-weight: 600;
-}
-</style>
 <h1 id="victorio-nascimento">VICTORIO NASCIMENTO</h1>
-<p><strong>Computer Science Student</strong></p>
-<p>📩 <a href="mailto:nasci.victorio@gmail.com">nasci.victorio@gmail.com</a> | 📱 +1 (263) 381-1821 | <a href="https://linkedin.com/in/vicnas">LinkedIn</a> | <a href="https://github.com/Vic-Nas">GitHub</a> | <a href="https://open.kattis.com/users/vic-nas">Kattis</a> | Montréal, QC</p>
+<p><strong>Étudiant en informatique</strong></p>
+<p>📩 <a href="mailto:nasci.victorio@gmail.com">nasci.victorio@gmail.com</a> | 📱 <a href="tel:+12633811821">+1 (263) 381-1821</a><br>
+<a href="https://linkedin.com/in/victorio.nascimento">LinkedIn</a> | <a href="https://github.com/Vic-Nas">GitHub</a> | <a href="https://open.kattis.com/users/vic-nas">Kattis</a><br>
+Montréal, QC</p>
 <hr>
-<h2 id="education">EDUCATION</h2>
-<p><strong>Bachelor of Computer Science</strong> | Université de Montréal | 2024 - 2027 (in progress)</p>
-<p><strong>Preparatory Cycle (MPSI) - ESIGELEC Rouen Partnership</strong><br>
-Cycle Préparatoire Père Aupiais, Cotonou, Benin | 2022 - 2024</p>
-<p><strong>Certifications:</strong> <a href="https://www.freecodecamp.org/news/learn-pytorch-for-deep-learning-in-day/">PyTorch Masterclass</a> (freeCodeCamp, 2025) · <a href="https://courses.opencv.org/certificates/8dcc8c64629c4ba2aaacff420c93fd4d">OpenCV Bootcamp</a> (OpenCV.org, 2025)</p>
+<h2 id="profil-professionnel">PROFIL PROFESSIONNEL</h2>
+<p>Étudiant en 2e année de baccalauréat en informatique à l'UdeM, passionné par la programmation compétitive et les défis algorithmiques. Co-responsable du club CALCULUM et développeur full-stack en projets d'infrastructure. Expérience en systèmes temps réel, architecture web distribuée et automation. Participant actif aux compétitions ICPC et Advent of Code. Bilingue avec excellentes compétences en communication et en travail d'équipe.</p>
 <hr>
-<h2 id="technical-projects">TECHNICAL PROJECTS</h2>
-<p><strong><a href="https://github.com/Vic-Nas/Flashy">Flashy - Path-based Reverse Proxy</a></strong> | Python, Django | 2026</p>
+<h2 id="implication-et-leadership">IMPLICATION ET LEADERSHIP</h2>
+<p><strong>Co-responsable du club CALCULUM</strong><br>
+Club de programmation algorithmique compétitive, Université de Montréal | Automne 2025 - présent</p>
 <ul>
-<li>Dynamic reverse proxy for routing multiple services through a single domain with environment-based configuration</li>
-<li>Automatic URL rewriting for JavaScript SPAs with transparent path handling and zero DevOps overhead</li>
-</ul>
-<p><strong><a href="https://github.com/Vic-Nas/Dash">Dash - Real-time Multiplayer Game</a></strong> | Python, WebSocket, HTML/CSS/JS | 2025</p>
-<ul>
-<li>Developed a multiplayer bot arena game supporting 10+ simultaneous players with real-time synchronization</li>
-<li>Implemented lobby system and matchmaking with server-side state management</li>
-</ul>
-<p><strong><a href="https://github.com/Vic-Nas/POOphonia">POOphonia - Music Library Manager</a></strong> | Java | 2025</p>
-<ul>
-<li>Object-oriented application to manage music collections with user authentication system</li>
-<li>MVC architecture with inheritance, polymorphism, and persistent file management</li>
-</ul>
-<p><strong><a href="https://github.com/Vic-Nas/HUFFMAN-TREE">Huffman Compression Algorithm</a></strong> | C, Python | 2024</p>
-<ul>
-<li>Complete implementation of compression algorithm with binary trees and frequency tables</li>
-<li>Memory and performance optimization for large file processing</li>
+<li>Encadrement et mentorat des membres pour améliorer leurs compétences en résolution de problèmes</li>
+<li>Organisation de séances d'entraînement et préparation aux compétitions de style ICPC</li>
 </ul>
 <hr>
-<h2 id="professional-experience">PROFESSIONAL EXPERIENCE</h2>
-<p><strong>Computer Engineering Intern</strong> | CAPETANO Ltd, Accra, Ghana | July - September 2023</p>
-<ul>
-<li>Automated data analysis chart generation with VBA, reducing manual processing time by 60%</li>
-<li>Processed and analyzed datasets to produce technical reports for management</li>
-</ul>
-<p><strong>Participant - Artificial Intelligence Summer School</strong> | Fondation Vallet | Summer 2023</p>
-<ul>
-<li>Developed an autonomous car project in Python using machine learning algorithms and computer vision</li>
-<li>Presented final project to a panel of technical evaluators with live demonstration</li>
-</ul>
+<h2 id="formation">FORMATION</h2>
+<p><strong>Baccalauréat en informatique</strong> — Université de Montréal | 2024 - 2027</p>
+<p>Certifications: <a href="https://www.freecodecamp.org/news/learn-pytorch-for-deep-learning-in-day/">PyTorch Masterclass</a> (2025) | <a href="https://courses.opencv.org/certificates/8dcc8c64629c4ba2aaacff420c93fd4d">OpenCV Bootcamp</a> (2025)</p>
+<p><strong>Cycle Préparatoire (MPSI)</strong> — Père Aupiais, Bénin | 2022 - 2024</p>
 <hr>
-<h2 id="involvement-and-leadership">INVOLVEMENT AND LEADERSHIP</h2>
-<p><strong>Co-lead of CALCULUM Club</strong> | Université de Montréal | Fall 2025 - present</p>
+<h2 id="exp%C3%A9rience-professionnelle">EXPÉRIENCE PROFESSIONNELLE</h2>
+<p><strong>Organisateur - Hackathon DIRO</strong><br>
+Université de Montréal, Montréal, QC | Janvier - Février 2026</p>
 <ul>
-<li>Mentorship and coaching of members to improve their algorithmic problem-solving skills</li>
-<li>Organization of weekly training sessions and preparation for ICPC and CS Games competitions</li>
+<li>Création et présentation de défis techniques et évaluation pour les participants du hackathon départemental</li>
 </ul>
-<p><strong><a href="https://hackathon.iro.umontreal.ca/2026/">DIRO UDEM Hackathon</a> Organization</strong> | Université de Montréal | January - February 2026</p>
+<p><strong>Stagiaire en ingénierie informatique</strong><br>
+CAPETANO Ltd, Accra, Ghana | Juillet - Septembre 2023</p>
 <ul>
-<li>Creation of technical challenges and algorithmic problems for the department's annual event</li>
-<li>Technical support and material resource management for participants</li>
+<li>Automatisé la génération de graphiques d'analyse de données avec VBA</li>
+<li>Collaboré avec une équipe technique internationale dans un environnement multilingue et multiculturel</li>
+</ul>
+<p><strong>Participant - École d'Été IA</strong> — Fondation Vallet | Été 2023</p>
+<ul>
+<li>Projet voiture autonome (Python, NumPy, OpenCV, impression 3D)</li>
 </ul>
 <hr>
-<h2 id="technical-skills">TECHNICAL SKILLS</h2>
-<p><strong>Programming Languages:</strong> C, Python, Java, VBA<br>
-<strong>Web Technologies:</strong> HTML/CSS, JavaScript, Django, WebSocket<br>
-<strong>Tools and Environments:</strong> VS Code, Git/GitHub, Eclipse, Jupyter, Docker<br>
-<strong>Python Libraries:</strong> NumPy, OpenCV, PyTorch, scikit-learn<br>
-<strong>Additional Skills:</strong> Algorithmic problem-solving, competitive programming, automation (n8n)</p>
+<h2 id="comp%C3%A9tences-techniques">COMPÉTENCES TECHNIQUES</h2>
+<p><strong>Langages de programmation:</strong> C, Python, Java, JavaScript, VBA<br>
+<strong>Frameworks & Backend:</strong> Flask, Django, WebSockets, PostgreSQL, Redis<br>
+<strong>Outils:</strong> Docker, Git, VS Code, GitHub, Jupyter<br>
+<strong>Spécialités:</strong> Backend Python, systèmes temps réel, architecture distribuée, problèmes algorithmiques<br>
+<strong>Soft skills:</strong> Leadership, mentorat, communication efficace, travail d'équipe multiculturel</p>
 <hr>
-<h2 id="languages">LANGUAGES</h2>
-<p><strong>French:</strong> Native | <strong>English:</strong> Bilingual (C1) | <strong>Spanish:</strong> Basic notions (A1)</p>
+<h2 id="projets-techniques">PROJETS TECHNIQUES</h2>
+<ul>
+<li><strong>EditorWatch</strong> — Code authenticity monitor: Extension VS Code + Flask backend. Analyse patterns, scoring 0-10, PostgreSQL + Redis. [<code>Python</code> <code>TypeScript</code> <code>Flask</code>]</li>
+<li><strong>Flashy</strong> — Reverse proxy multi-services avec Django. Architecture scalable. [<code>Django</code> <code>Docker</code>]</li>
+<li><strong>Dash</strong> — Arena multijoueur temps réel avec WebSockets. [<code>WebSockets</code> <code>Real-time</code>]</li>
+<li><strong>POOphonia</strong> — Gestionnaire de bibliothèque musicale démontrant architectures OOP et design patterns. [<code>Java</code> <code>OOP</code>]</li>
+</ul>
 <hr>
-<p><strong>Availability:</strong> Part-time (outside class hours) · Full-time (Summer 2026)</p>
+<h2 id="langues">LANGUES</h2>
+<p><strong>Français:</strong> Natif | <strong>Anglais:</strong> Bilingue (C1) | <strong>Espagnol:</strong> Notions (A1) | <strong>Disponible:</strong> Été 2026</p>
 
 </body>
 </html>
